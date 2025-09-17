@@ -47,7 +47,7 @@ describe('TransformInterceptor', () => {
     expect(interceptor).toBeDefined();
   });
 
-  it('dovrebbe trasformare la risposta con i metadati richiesti', (done) => {
+  it('dovrebbe trasformare la risposta con i metadati richiesti', done => {
     // Arrange
     const testData = { message: 'Test response' };
     (mockCallHandler.handle as jest.Mock).mockReturnValue(of(testData));
@@ -75,7 +75,7 @@ describe('TransformInterceptor', () => {
     });
   });
 
-  it('dovrebbe gestire correttamente richieste senza URL', (done) => {
+  it('dovrebbe gestire correttamente richieste senza URL', done => {
     // Arrange
     const incompleteRequest = {};
     (
@@ -96,7 +96,7 @@ describe('TransformInterceptor', () => {
     });
   });
 
-  it('dovrebbe gestire correttamente dati null', (done) => {
+  it('dovrebbe gestire correttamente dati null', done => {
     // Arrange
     (mockCallHandler.handle as jest.Mock).mockReturnValue(of(null));
 
@@ -114,7 +114,7 @@ describe('TransformInterceptor', () => {
     });
   });
 
-  it('dovrebbe mantenere la struttura della risposta originale nei dati', (done) => {
+  it('dovrebbe mantenere la struttura della risposta originale nei dati', done => {
     // Arrange
     const complexData = {
       users: [

@@ -15,7 +15,41 @@ This document outlines the enterprise-level best practices for package managemen
 
 ### Enterprise Best Practices
 
-#### 1. Package Lock File Management
+#### 1. Node.js & npm Version Enforcement
+
+**🔒 LOCKED ENGINES** - Enterprise-grade version consistency:
+
+```json
+{
+  "engines": {
+    "node": ">=20.8.0",
+    "npm": ">=10.0.0"
+  }
+}
+```
+
+**🚨 Enforcement Strategy:**
+
+```bash
+# ✅ Verify versions match requirements
+node --version  # Must be >= 20.8.0
+npm --version   # Must be >= 10.0.0
+
+# ✅ Enable strict engine checking (recommended for CI/CD)
+npm config set engine-strict true
+
+# ✅ Team onboarding check
+npm run env:check  # Custom script to validate environment
+```
+
+**📋 Why Engine Locking Matters:**
+
+- **Security**: Older Node.js versions have known vulnerabilities
+- **Features**: Modern npm features (lockfile v3, workspaces)
+- **Performance**: Significant improvements in Node 20+
+- **Team Consistency**: Eliminates "works on my machine" issues
+
+#### 2. Package Lock File Management
 
 ```bash
 # ✅ CORRECT: Always commit package-lock.json
@@ -26,18 +60,47 @@ git commit -m "chore: update package-lock.json"
 echo "package-lock.json" >> .gitignore  # DON'T DO THIS
 ```
 
-#### 2. Dependency Installation
+#### 3. Dependency Installation
+
+**🚨 CRITICAL ENTERPRISE RULE: When to use `npm ci` vs `npm install`**
 
 ```bash
-# ✅ Production installations (CI/CD, production servers)
+# ✅ REQUIRED: Production installations (CI/CD, production servers)
 npm ci
+# 📋 Why: Installs exact versions from package-lock.json
+# 📋 Use case: Docker builds, deployment servers, CI pipelines
 
-# ✅ Development with new dependencies
+# ✅ REQUIRED: Fresh development setup
+npm ci
+# 📋 Why: Ensures identical dependency tree as team
+# 📋 Use case: New team member, fresh git clone
+
+# ✅ REQUIRED: After git pull with package-lock.json changes
+npm ci
+# 📋 Why: Synchronizes with updated dependencies
+# 📋 Use case: Someone else updated dependencies
+
+# ✅ Development with NEW dependencies only
 npm install
+# 📋 Why: Updates package-lock.json with new dependencies
+# 📋 Use case: Adding new packages to project
 
-# ✅ Update package-lock after package.json changes
+# ✅ Update package-lock after manual package.json changes
 npm install --package-lock-only
+# 📋 Why: Regenerates lock file without installing
+# 📋 Use case: Version bump, dependency version changes
 ```
+
+**🎯 Enterprise Decision Matrix:**
+
+| Scenario              | Command       | Reason                                      |
+| --------------------- | ------------- | ------------------------------------------- |
+| 🚀 CI/CD Pipeline     | `npm ci`      | **MANDATORY** - Exact reproducible builds   |
+| 🐳 Docker Build       | `npm ci`      | **MANDATORY** - Consistent container images |
+| 🔄 After `git pull`   | `npm ci`      | **RECOMMENDED** - Sync with team changes    |
+| 👨‍💻 Fresh dev setup    | `npm ci`      | **RECOMMENDED** - Start with team state     |
+| ➕ Adding new package | `npm install` | **REQUIRED** - Updates lock file            |
+| 🔄 Development work   | `npm ci`      | **PREFERRED** - Consistent environment      |
 
 #### 3. Security and Audit
 
@@ -268,3 +331,88 @@ Our Husky setup includes:
 | `npm outdated`                    | Check for updates     | Monthly review                   |
 
 For questions or issues with package management, refer to the development team lead or create an issue in the project repository.
+
+## Environment Validation
+
+### Automated Environment Checks
+
+Use our environment validation script to ensure enterprise compliance:
+
+```bash
+# Complete environment check
+npm run env:check
+
+# Quick validation (minimal output)
+npm run env:validate
+
+# CI/CD compatible format
+npm run env:check:ci
+```
+
+The validation checks:
+
+- **Node.js & npm versions**: Compliance with `engines` requirements
+- **Package-lock.json**: Presence, version consistency, lockfile format
+- **Git Hooks**: Husky configuration for commit validation
+- **Security**: High-risk vulnerabilities in dependencies
+
+### Enforcement Matrix
+
+| Component         | Minimum Version | Recommended | Auto-Check   |
+| ----------------- | --------------- | ----------- | ------------ |
+| Node.js           | 20.8.0          | 20.17.0+    | ✅ env:check |
+| npm               | 10.0.0          | 11.0.0+     | ✅ env:check |
+| package-lock.json | v3 format       | v3 format   | ✅ env:check |
+| Git Hooks         | Husky 9.0+      | Husky 9.0+  | ✅ env:check |
+
+### Pre-commit Integration
+
+```bash
+# .husky/pre-commit
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+npm run env:check:ci || exit 1
+npm run lint:check || exit 1
+npm run test:coverage:check || exit 1
+```
+
+### CI/CD Environment Validation
+
+```yaml
+# .github/workflows/ci.yml
+jobs:
+  environment-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - name: Validate Environment
+        run: npm run env:check:ci
+```
+
+### Developer Setup Script
+
+```bash
+#!/bin/bash
+# scripts/setup-dev.sh
+
+echo "🚀 Setting up development environment..."
+
+# Check Node/npm versions
+npm run env:check
+
+# Install dependencies
+npm ci
+
+# Setup Git hooks
+npm run prepare
+
+# Run initial validation
+npm run quality
+
+echo "✅ Development environment ready!"
+```

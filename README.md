@@ -67,6 +67,12 @@ Questo progetto utilizza **npm** con `package-lock.json` per garantire riproduci
 - `npm run quality` - Controllo completo qualità
 - `npm run analyze` - Analisi complessità cognitiva
 
+### Controllo Ambiente
+
+- `npm run env:check` - Verifica completa ambiente sviluppo
+- `npm run env:validate` - Validazione ambiente (output minimale)
+- `npm run env:check:ci` - Formato CI/CD compatible
+
 ### 🎯 Release Management (NUOVO!)
 
 - `npm run release:analyze` - Analizza se è necessario un release
@@ -103,7 +109,7 @@ Questo progetto include un sistema completo di release automation che:
 
 Usa il formato standard per i commit:
 
-```
+```text
 <type>(<scope>): <description>
 
 [optional body]
@@ -129,7 +135,7 @@ BREAKING CHANGE: modify user schema structure
 
 ## 📁 Struttura Progetto
 
-```
+```text
 src/
 ├── common/           # Componenti condivisi
 │   ├── controllers/  # Controller base

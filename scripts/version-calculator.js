@@ -215,7 +215,7 @@ class VersionCalculator {
   }
 
   /**
-   * Aggiorna la versione nel package.json
+   * Aggiorna la versione nel package.json e sincronizza package-lock.json
    * @param {string} newVersion La nuova versione
    * @param {boolean} dryRun Se true, non scrive il file ma mostra cosa farebbe
    * @returns {boolean} True se l'operazione è riuscita
@@ -233,9 +233,13 @@ class VersionCalculator {
         this.log(
           `🧪 DRY RUN: Would update package.json version from ${oldVersion} to ${newVersion}`,
         );
+        this.log(
+          `🧪 DRY RUN: Would synchronize package-lock.json with new version`,
+        );
         return true;
       }
 
+      // Update package.json
       fs.writeFileSync(
         this.packageJsonPath,
         JSON.stringify(packageJson, null, 2) + '\n',
@@ -243,9 +247,56 @@ class VersionCalculator {
       this.log(
         `📦 Updated package.json version from ${oldVersion} to ${newVersion}`,
       );
+
+      // Synchronize package-lock.json with new version
+      this.updatePackageLockVersion(newVersion);
+
       return true;
     } catch (error) {
       this.log(`❌ Error updating package.json: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Sincronizza la versione nel package-lock.json
+   * @param {string} newVersion La nuova versione
+   * @returns {boolean} True se l'operazione è riuscita
+   */
+  updatePackageLockVersion(newVersion) {
+    try {
+      const packageLockPath = path.join(
+        path.dirname(this.packageJsonPath),
+        'package-lock.json',
+      );
+
+      if (!fs.existsSync(packageLockPath)) {
+        this.log(`⚠️  package-lock.json not found, skipping sync`);
+        return true;
+      }
+
+      const packageLock = JSON.parse(fs.readFileSync(packageLockPath, 'utf8'));
+      const oldLockVersion = packageLock.version;
+
+      // Update root version
+      packageLock.version = newVersion;
+
+      // Update version in packages[""] if exists
+      if (packageLock.packages && packageLock.packages['']) {
+        packageLock.packages[''].version = newVersion;
+      }
+
+      fs.writeFileSync(
+        packageLockPath,
+        JSON.stringify(packageLock, null, 2) + '\n',
+      );
+
+      this.log(
+        `🔒 Synchronized package-lock.json version from ${oldLockVersion} to ${newVersion}`,
+      );
+      return true;
+    } catch (error) {
+      this.log(`❌ Error updating package-lock.json: ${error.message}`);
       return false;
     }
   }

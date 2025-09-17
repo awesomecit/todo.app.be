@@ -72,7 +72,7 @@ describe('LoggingInterceptor', () => {
     expect(interceptor).toBeDefined();
   });
 
-  it("dovrebbe loggare l'inizio e la fine della richiesta per una risposta di successo", (done) => {
+  it("dovrebbe loggare l'inizio e la fine della richiesta per una risposta di successo", done => {
     // Arrange
     (mockCallHandler.handle as jest.Mock).mockReturnValue(
       of({ data: 'success' }),
@@ -109,7 +109,7 @@ describe('LoggingInterceptor', () => {
     });
   });
 
-  it('dovrebbe loggare un errore se la richiesta fallisce', (done) => {
+  it('dovrebbe loggare un errore se la richiesta fallisce', done => {
     // Arrange
     const testError = new Error('Test error');
     (mockCallHandler.handle as jest.Mock).mockReturnValue(
@@ -124,7 +124,7 @@ describe('LoggingInterceptor', () => {
 
     result.subscribe({
       next: () => done.fail('Non dovrebbe arrivare qui'),
-      error: (error) => {
+      error: error => {
         expect(error).toBe(testError);
         expect(logger.log).toHaveBeenCalledTimes(1); // Chiamata all'inizio
         expect(logger.error).toHaveBeenCalledTimes(1); // Chiamata di errore
@@ -141,7 +141,7 @@ describe('LoggingInterceptor', () => {
     });
   });
 
-  it('dovrebbe gestire correttamente request senza method o url', (done) => {
+  it('dovrebbe gestire correttamente request senza method o url', done => {
     // Arrange
     const incompleteRequest = {
       ip: '127.0.0.1',
@@ -171,7 +171,7 @@ describe('LoggingInterceptor', () => {
     });
   });
 
-  it('dovrebbe gestire correttamente errori senza stack trace', (done) => {
+  it('dovrebbe gestire correttamente errori senza stack trace', done => {
     // Arrange
     const errorWithoutStack = new Error('No stack');
     delete errorWithoutStack.stack;
