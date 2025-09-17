@@ -1,9 +1,5 @@
 - quando aggiungi commenti non spiegare il come ma il perché
 
-- aggiungi guida nestjs
-
-- aggiungi guida eXtreamProgramming e principi/manifesto
-
 - genera un documento report del progetto: analisi di quello che abbiamo fatto (log e copilot history),
 di come l'interazione con uno sviluppatore senior con conoscenze di dominio ha aiutato il vibe coding,
 di quelle che sarebbero state le tempistiche per implementare questo sistema senza tool AI (per tre seniority junior, middle,level sia in ore/sprint e storypoint)
