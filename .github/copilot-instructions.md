@@ -18,6 +18,10 @@ This is a backend application built with NestJS. The codebase is organized for m
   - **Function Length:** Maximum 50 lines per function (excluding comments/blanks)
   - **Parameter Limit:** Maximum 4 parameters per function
   - **Nesting Depth:** Maximum 3 levels of nesting
+  - **Comments Philosophy:** When adding comments, explain the WHY, not the HOW. Focus on business logic, domain context, and reasoning behind decisions rather than describing what the code is doing.
+- **Testing Standards:**
+  - **Test Structure:** Always use Given-When-Then pattern (or Arrange-Act-Assert). Make the pattern immediately clear through comments or logical test organization
+  - **Test Readability:** Each test should clearly show what is being set up (Given), what action is performed (When), and what outcome is expected (Then)
 - **Validation:** Environment variables are validated using Joi in `src/config/validation.schema.ts`. Example: `JWT_SECRET` must be a string of at least 32 characters.
 - **Controllers & Services:** Controllers are in `src/app.controller.ts` and `src/health/health.controller.ts`. Services are in `src/app.service.ts` and `common/`.
 - **Custom Middleware, Filters, Interceptors:** See `src/common/middleware/`, `src/common/filters/`, and `src/common/interceptors/` for custom request handling and error management.

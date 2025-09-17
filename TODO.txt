@@ -9,6 +9,14 @@ e in quanto tempo invece lo abbiamo realizzato.
 
 - gestione centrealizzata timezone e best practive
 
+- division entities
+
+- revision entities
+
+- interoperabilità dei dati (modulo con libreria node-git)
+
+- helper proper acid transaction and commit/release/rollback
+
 - users e auth
 
 - sistema di filtri

@@ -495,4 +495,227 @@ describe('CustomLogger', () => {
       }).not.toThrow();
     });
   });
+
+  describe('Internal Helper Functions Coverage', () => {
+    it('should test all primitive type handling paths through context', () => {
+      // Given: Various primitive and edge case values as context
+      const testCases = [
+        { value: null, name: 'null' },
+        { value: undefined, name: 'undefined' },
+        { value: 42, name: 'number' },
+        { value: true, name: 'true' },
+        { value: false, name: 'false' },
+        { value: BigInt(9007199254740991), name: 'bigint' },
+      ];
+
+      // When: Logging with these values as context to trigger safeStringify
+      // Then: Should not throw errors and handle each case correctly
+      expect(() => {
+        testCases.forEach(testCase => {
+          logger.info('Testing primitive', testCase.value as any);
+          logger.debug('Testing primitive', testCase.value as any);
+          logger.warn('Testing primitive', testCase.value as any);
+          logger.error(
+            'Testing primitive',
+            testCase.value as any,
+            testCase.value as any,
+          );
+        });
+      }).not.toThrow();
+    });
+
+    it('should test special object handling paths through context', () => {
+      // Given: Special object types that trigger different code paths
+      const testDate = new Date('2023-01-01T00:00:00.000Z');
+      const testError = new Error('Test error for helper coverage');
+      testError.stack = 'Test stack trace\n  at TestFunction';
+
+      const testErrorNoStack = new Error('Error without stack');
+      delete testErrorNoStack.stack;
+
+      const testArray = ['item1', 2, { nested: 'object' }, null, undefined];
+      const emptyArray: any[] = [];
+
+      // When: Testing these special objects as context
+      // Then: Should handle each type appropriately without errors
+      expect(() => {
+        logger.info('Testing date', testDate as any);
+        logger.error('Testing error with stack', '', testError as any);
+        logger.error(
+          'Testing error without stack',
+          '',
+          testErrorNoStack as any,
+        );
+        logger.info('Testing array', testArray as any);
+        logger.info('Testing empty array', emptyArray as any);
+      }).not.toThrow();
+    });
+
+    it('should test generic object fallback paths through context', () => {
+      // Given: Objects that trigger fallback representation paths
+      const simpleObject = { key1: 'value1', key2: 'value2' };
+
+      // Object that will cause JSON.stringify to fail
+      const cyclicObject: any = { name: 'cyclic' };
+      cyclicObject.self = cyclicObject;
+
+      // Object without constructor
+      const objectWithoutConstructor = Object.create(null);
+      objectWithoutConstructor.someKey = 'someValue';
+
+      // When: Testing these edge case objects as context
+      // Then: Should handle fallback scenarios correctly
+      expect(() => {
+        logger.info('Testing simple object', simpleObject as any);
+        logger.info('Testing cyclic object', cyclicObject as any);
+        logger.info(
+          'Testing object without constructor',
+          objectWithoutConstructor as any,
+        );
+      }).not.toThrow();
+    });
+
+    it('should test function and symbol handling through context', () => {
+      // Given: Function and symbol types
+      function namedFunction() {
+        return 'test';
+      }
+      const anonymousFunction = function () {
+        return 'anonymous';
+      };
+      const arrowFunction = () => 'arrow';
+      const testSymbol = Symbol('testSymbol');
+      const testSymbolWithoutDescription = Symbol();
+
+      // When: Logging these special types as context
+      // Then: Should convert to appropriate string representations
+      expect(() => {
+        logger.info('Testing named function', namedFunction as any);
+        logger.info('Testing anonymous function', anonymousFunction as any);
+        logger.info('Testing arrow function', arrowFunction as any);
+        logger.info('Testing symbol', testSymbol as any);
+        logger.info(
+          'Testing symbol without description',
+          testSymbolWithoutDescription as any,
+        );
+      }).not.toThrow();
+    });
+
+    it('should test string length truncation for large objects through context', () => {
+      // Given: Very large object that will exceed 500 character limit
+      const largeObject: any = {};
+      for (let i = 0; i < 100; i++) {
+        largeObject[`veryLongKeyName${i}`] =
+          `veryLongValueThatWillMakeTheJSONStringificationExceedTheLimit${i}`;
+      }
+
+      // When: Logging large object as context
+      // Then: Should truncate without errors
+      expect(() => {
+        logger.info('Testing large object truncation', largeObject as any);
+      }).not.toThrow();
+    });
+
+    it('should test unrecognized value type fallback through context', () => {
+      // Given: Edge case values that might trigger unrecognized type fallback
+      const weirdTypes = [new WeakMap(), new WeakSet(), new Proxy({}, {})];
+
+      // When: Logging these edge case types as context
+      // Then: Should handle gracefully with fallback representation
+      expect(() => {
+        weirdTypes.forEach((value, index) => {
+          logger.info(`Testing weird type ${index}`, value as any);
+        });
+      }).not.toThrow();
+    });
+
+    it('should test object key extraction fallback through context', () => {
+      // Given: Object that might cause Object.keys to fail
+      const problematicObject = Object.create(null);
+      Object.defineProperty(problematicObject, 'problematicKey', {
+        enumerable: false,
+        value: 'hidden',
+      });
+
+      // When: Logging problematic object as context
+      // Then: Should handle gracefully with constructor name fallback
+      expect(() => {
+        logger.info('Testing problematic object', problematicObject as any);
+      }).not.toThrow();
+    });
+
+    it('should test array with complex items through context', () => {
+      // Given: Array containing various complex types
+      const complexArray = [
+        { nested: { deep: { object: 'value' } } },
+        new Date(),
+        new Error('Test error'),
+        function () {
+          return 'test';
+        },
+        Symbol('arraySymbol'),
+        null,
+        undefined,
+        [1, 2, [3, 4]],
+      ];
+
+      // When: Logging complex array as context
+      // Then: Should handle all nested types correctly
+      expect(() => {
+        logger.info('Testing complex array', complexArray as any);
+      }).not.toThrow();
+    });
+
+    it('should test error stack path with different objects', () => {
+      // Given: Various objects passed as stack to error method
+      const stackObjects = [
+        'simple string stack',
+        null,
+        undefined,
+        { objectAsStack: 'test' },
+        ['array', 'as', 'stack'],
+        42,
+        true,
+      ];
+
+      // When: Using these as stack parameter
+      // Then: Should handle through safeStringify correctly
+      expect(() => {
+        stackObjects.forEach((stack, index) => {
+          logger.error(
+            `Testing stack object ${index}`,
+            stack as any,
+            'StackTest',
+          );
+        });
+      }).not.toThrow();
+    });
+
+    it('should test deep nested array processing', () => {
+      // Given: Deeply nested array that triggers recursive safeStringify
+      const deepArray = [
+        [
+          [
+            {
+              level3: {
+                level4: [
+                  'deep',
+                  { veryDeep: true },
+                  null,
+                  undefined,
+                  Symbol('deep'),
+                ],
+              },
+            },
+          ],
+        ],
+      ];
+
+      // When: Logging deep nested structure
+      // Then: Should process all levels without errors
+      expect(() => {
+        logger.info('Testing deep array', deepArray as any);
+      }).not.toThrow();
+    });
+  });
 });

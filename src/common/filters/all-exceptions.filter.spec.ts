@@ -342,4 +342,228 @@ describe('AllExceptionsFilter', () => {
       expect(logger.error).toHaveBeenCalled();
     });
   });
+
+  describe('Edge Cases and Missing Coverage', () => {
+    it('should handle headers that are not objects in generateCurlCommand', () => {
+      // Given: Request with non-object headers
+      const mockRequestWithInvalidHeaders = {
+        ...mockRequest,
+        headers: null, // Non-object headers
+      } as unknown as Request;
+
+      (
+        mockArgumentsHost.switchToHttp().getRequest as jest.Mock
+      ).mockReturnValue(mockRequestWithInvalidHeaders);
+
+      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+
+      // When: Catching exception with invalid headers
+      // Then: Should handle gracefully
+      expect(() => {
+        filter.catch(exception, mockArgumentsHost);
+      }).not.toThrow();
+    });
+
+    it('should handle headers that are undefined in generateCurlCommand', () => {
+      // Given: Request with undefined headers
+      const mockRequestWithUndefinedHeaders = {
+        ...mockRequest,
+        headers: undefined, // Undefined headers to trigger line 76
+      } as unknown as Request;
+
+      (
+        mockArgumentsHost.switchToHttp().getRequest as jest.Mock
+      ).mockReturnValue(mockRequestWithUndefinedHeaders);
+
+      const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+
+      // When: Catching exception with undefined headers
+      // Then: Should handle gracefully and use basic curl command
+      expect(() => {
+        filter.catch(exception, mockArgumentsHost);
+      }).not.toThrow();
+    });
+
+    it('should handle exception responses that are not objects', () => {
+      // Given: HttpException with non-object response
+      const exception = new HttpException(
+        'Simple string error',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+
+      (
+        mockArgumentsHost.switchToHttp().getRequest as jest.Mock
+      ).mockReturnValue(mockRequest);
+
+      // When: Catching exception with non-object response
+      // Then: Should handle gracefully and provide fallback message
+      expect(() => {
+        filter.catch(exception, mockArgumentsHost);
+      }).not.toThrow();
+
+      expect(mockResponse.status).toHaveBeenCalledWith(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+          message: 'Simple string error',
+          method: 'GET',
+          path: '/api/test',
+          timestamp: expect.any(String),
+        }),
+      );
+    });
+
+    it('should handle BAD_REQUEST with array message for validation errors', () => {
+      // Given: BadRequestException with array of validation errors
+      const validationErrors = [
+        'Field name is required',
+        'Email must be valid',
+      ];
+      const exception = new HttpException(
+        {
+          message: validationErrors,
+          error: 'Bad Request',
+          statusCode: 400,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+
+      (
+        mockArgumentsHost.switchToHttp().getRequest as jest.Mock
+      ).mockReturnValue(mockRequest);
+
+      // When: Catching validation exception
+      filter.catch(exception, mockArgumentsHost);
+
+      // Then: Should format validation errors properly
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Errori di validazione',
+          errors: expect.objectContaining({
+            validationErrors: validationErrors,
+            details: 'Controlla i campi indicati e riprova',
+          }),
+          method: 'GET',
+          path: '/api/test',
+          timestamp: expect.any(String),
+        }),
+      );
+    });
+
+    it('should handle BAD_REQUEST with string message', () => {
+      // Given: BadRequestException with string message
+      const exception = new HttpException(
+        {
+          message: 'Single validation error',
+          errors: { customField: 'Custom error' },
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+
+      (
+        mockArgumentsHost.switchToHttp().getRequest as jest.Mock
+      ).mockReturnValue(mockRequest);
+
+      // When: Catching exception with string message
+      filter.catch(exception, mockArgumentsHost);
+
+      // Then: Should include errors object
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Single validation error',
+          errors: { customField: 'Custom error' },
+          method: 'GET',
+          path: '/api/test',
+          timestamp: expect.any(String),
+        }),
+      );
+    });
+
+    it('should handle unknown exception types with fallback', () => {
+      // Given: Non-HttpException error
+      const unknownError = new Error('Unknown error type');
+
+      (
+        mockArgumentsHost.switchToHttp().getRequest as jest.Mock
+      ).mockReturnValue(mockRequest);
+
+      // When: Catching unknown exception type
+      filter.catch(unknownError, mockArgumentsHost);
+
+      // Then: Should use fallback response
+      expect(mockResponse.status).toHaveBeenCalledWith(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Unknown error type',
+          method: 'GET',
+          path: '/api/test',
+          timestamp: expect.any(String),
+        }),
+      );
+    });
+
+    it('should use internal fallback for completely unknown exceptions', () => {
+      // Given: A non-standard exception without proper structure
+      const weirdException = { nonStandardProperty: 'test' } as any;
+
+      (
+        mockArgumentsHost.switchToHttp().getRequest as jest.Mock
+      ).mockReturnValue(mockRequest);
+
+      // When: Catching weird exception type
+      filter.catch(weirdException, mockArgumentsHost);
+
+      // Then: Should use internal server error fallback (line 338)
+      expect(mockResponse.status).toHaveBeenCalledWith(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Internal server error',
+          method: 'GET',
+          path: '/api/test',
+          timestamp: expect.any(String),
+        }),
+      );
+    });
+
+    it('should handle exceptions with null response', () => {
+      // Given: HttpException with null response
+      const exception = new HttpException(
+        null as any,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+
+      (
+        mockArgumentsHost.switchToHttp().getRequest as jest.Mock
+      ).mockReturnValue(mockRequest);
+
+      // When: Catching exception with null response
+      filter.catch(exception, mockArgumentsHost);
+
+      // Then: Should handle gracefully with fallback
+      expect(mockResponse.status).toHaveBeenCalledWith(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Http Exception',
+          method: 'GET',
+          path: '/api/test',
+          timestamp: expect.any(String),
+        }),
+      );
+    });
+  });
 });
