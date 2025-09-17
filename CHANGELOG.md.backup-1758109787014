@@ -1,18 +1,3 @@
-## 0.7.0 (2025-09-17)
-
-- feat: add intelligent auto-release for semantic commits ([4c879e2](https://github-privato/awesomecit/todo/commit/4c879e2))
-
-## 0.6.0 (2025-09-17)
-
-- chore: remove backup file after release ([2205dc3](https://github-privato/awesomecit/todo/commit/2205dc3))
-- chore(release): bump version to 0.6.0 ([a230464](https://github-privato/awesomecit/todo/commit/a230464))
-- feat: add enterprise package management and environment validation ([352110f](https://github-privato/awesomecit/todo/commit/352110f))
-- docs: add comprehensive package management enterprise guidelines ([cf9c2f5](https://github-privato/awesomecit/todo/commit/cf9c2f5))
-
-### BREAKING CHANGE
-
-- Enhanced release system now requires both package.json and package-lock.json sync
-
 ## 0.5.0 (2025-09-17)
 
 - fix: fixed error in json parsig for release-analyzer ([2796d9a](https://github-privato/awesomecit/todo/commit/2796d9a))
