@@ -27,3 +27,13 @@
 - aumentiamo il coverage
 
 - estensione KC
+
+- sistema di reportistica (jsreport)
+
+- sistema di customizzazione report con template pre caricati
+
+- chat bot audio per movimentazione task (agente ai)
+
+- sistema di notifiche push
+
+- help desk su progetti software strutturati (agente ai)
