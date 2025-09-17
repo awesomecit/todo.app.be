@@ -3,7 +3,15 @@
 /**
  * Semantic Release Analyzer
  *
- * Analizza i commit dal ultimo release per determinare se è necessario un nuovo rilascio
+ * Analizza i com    const commitList = this.getCommitsSince(lastTag);
+    if (commitList.length === 0) {
+      if (lastTag) {
+        this.log('📝 No new commits found since last release');
+        return [];
+      }
+    } else {
+      this.log(`📝 Found ${commitList.length} commits since last release`);
+    }t dal ultimo release per determinare se è necessario un nuovo rilascio
  * e calcola il tipo di versione bump richiesto secondo Semantic Versioning.
  *
  * Supporta conventional commits:
@@ -18,9 +26,20 @@ const fs = require('fs');
 const path = require('path');
 
 class ReleaseAnalyzer {
-  constructor() {
+  constructor(options = {}) {
     this.packageJsonPath = path.join(process.cwd(), 'package.json');
     this.changelogPath = path.join(process.cwd(), 'CHANGELOG.md');
+    this.silent = options.silent || false;
+  }
+
+  /**
+   * Logs a message if not in silent mode
+   * @param {string} message The message to log
+   */
+  log(message) {
+    if (!this.silent) {
+      console.log(message);
+    }
   }
 
   /**
@@ -33,10 +52,10 @@ class ReleaseAnalyzer {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore'],
       }).trim();
-      console.log(`📍 Last release tag found: ${lastTag}`);
+      this.log(`📍 Last release tag found: ${lastTag}`);
       return lastTag;
     } catch (error) {
-      console.log(
+      this.log(
         '📍 No previous release tags found, analyzing from first commit',
       );
       return null;
@@ -62,10 +81,10 @@ class ReleaseAnalyzer {
       }
 
       const commitList = commits.split('\n').filter(commit => commit.trim());
-      console.log(`📝 Found ${commitList.length} commits since last release`);
+      this.log(`📝 Found ${commitList.length} commits since last release`);
       return commitList;
     } catch (error) {
-      console.error('❌ Error getting commits:', error.message);
+      this.log('❌ Error getting commits:', error.message);
       return [];
     }
   }
@@ -192,7 +211,7 @@ class ReleaseAnalyzer {
       );
       return packageJson.version || '0.0.0';
     } catch (error) {
-      console.warn(
+      this.log(
         '⚠️  Could not read current version from package.json, using 0.0.0',
       );
       return '0.0.0';
@@ -204,10 +223,10 @@ class ReleaseAnalyzer {
    * @returns {Object} Risultati dell'analisi completa
    */
   analyze() {
-    console.log('🔍 Starting release analysis...\n');
+    this.log('🔍 Starting release analysis...\n');
 
     const currentVersion = this.getCurrentVersion();
-    console.log(`📦 Current version: ${currentVersion}`);
+    this.log(`📦 Current version: ${currentVersion}`);
 
     const lastTag = this.getLastReleaseTag();
     const commits = this.getCommitsSinceLastRelease(lastTag);
@@ -220,16 +239,14 @@ class ReleaseAnalyzer {
       timestamp: new Date().toISOString(),
     };
 
-    console.log('\n📊 Release Analysis Results:');
-    console.log(
-      `   Needs Release: ${analysis.needsRelease ? '✅ Yes' : '❌ No'}`,
-    );
-    console.log(`   Release Type: ${analysis.releaseType}`);
-    console.log(`   Total Commits: ${analysis.summary.total}`);
-    console.log(`   • Major: ${analysis.summary.major}`);
-    console.log(`   • Minor: ${analysis.summary.minor}`);
-    console.log(`   • Patch: ${analysis.summary.patch}`);
-    console.log(`   • No Release: ${analysis.summary.none}`);
+    this.log('\n📊 Release Analysis Results:');
+    this.log(`   Needs Release: ${analysis.needsRelease ? '✅ Yes' : '❌ No'}`);
+    this.log(`   Release Type: ${analysis.releaseType}`);
+    this.log(`   Total Commits: ${analysis.summary.total}`);
+    this.log(`   • Major: ${analysis.summary.major}`);
+    this.log(`   • Minor: ${analysis.summary.minor}`);
+    this.log(`   • Patch: ${analysis.summary.patch}`);
+    this.log(`   • No Release: ${analysis.summary.none}`);
 
     return result;
   }
@@ -243,17 +260,15 @@ class ReleaseAnalyzer {
     try {
       const outputPath = path.join(process.cwd(), outputFile);
       fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
-      console.log(`\n💾 Analysis saved to: ${outputFile}`);
+      this.log(`\n💾 Analysis saved to: ${outputFile}`);
     } catch (error) {
-      console.error(`❌ Error saving results: ${error.message}`);
+      this.log(`❌ Error saving results: ${error.message}`);
     }
   }
 }
 
 // Esecuzione script se chiamato direttamente
 if (require.main === module) {
-  const analyzer = new ReleaseAnalyzer();
-
   // Parse command line arguments
   const args = process.argv.slice(2);
   const saveToFile = args.includes('--save');
@@ -262,11 +277,13 @@ if (require.main === module) {
     'release-analysis.json';
   const jsonOutput = args.includes('--json');
 
+  const analyzer = new ReleaseAnalyzer({ silent: jsonOutput });
+
   try {
     const results = analyzer.analyze();
 
     if (jsonOutput) {
-      console.log('\n📄 JSON Output:');
+      // Only output JSON, suppress normal output
       console.log(JSON.stringify(results, null, 2));
     }
 
@@ -277,7 +294,11 @@ if (require.main === module) {
     // Exit with appropriate code
     process.exit(results.analysis.needsRelease ? 0 : 1);
   } catch (error) {
-    console.error(`❌ Release analysis failed: ${error.message}`);
+    if (jsonOutput) {
+      console.log(JSON.stringify({ error: error.message }, null, 2));
+    } else {
+      console.error(`❌ Release analysis failed: ${error.message}`);
+    }
     process.exit(2);
   }
 }
