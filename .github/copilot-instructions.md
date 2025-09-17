@@ -58,6 +58,11 @@ This is a backend application built with NestJS. The codebase is organized for m
 - **Database Management:**
   - **Migrations required:** Always implement migrations when entities are modified
   - **Entity changes:** Never modify entities without corresponding migration files
+- **Naming Conventions:**
+  - **Database Schema**: Use `snake_case` for all database columns and table names
+  - **TypeScript Code**: Use `camelCase` for all properties and method names
+  - **Automatic Conversion**: Implement utilities to convert between `snake_case` (database) and `camelCase` (code)
+  - **Entity Properties**: Database columns in `snake_case` should automatically map to `camelCase` properties in TypeScript entities
 - **Logging Standards:**
   - **Use Logger service only:** Never use `console.log` - always use the Logger service
   - **Appropriate log levels:** Use correct log levels (`debug`, `info`, `warn`, `error`)
