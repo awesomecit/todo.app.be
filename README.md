@@ -214,6 +214,33 @@ Per informazioni dettagliate sul sistema di release automation:
 - **[❓ FAQ](./docs/release/FAQ.md)** - Domande frequenti e best practices
 - **[🔧 Troubleshooting](./docs/release/TROUBLESHOOTING.md)** - Risoluzione problemi comuni
 
+## 🚨 Emergency Bypass Commands
+
+### ⚠️ Per Situazioni di Emergenza - Bypassano i Controlli di Qualità
+
+```bash
+# Bypass pre-push hooks (salta coverage/security checks)
+SKIP_PRE_PUSH_HOOK=true git push origin main
+
+# Bypass pre-commit hooks (salta linting/testing)
+git commit --no-verify -m "emergency fix"
+
+# Force push (bypassa tutte le protezioni)
+git push --no-verify origin main
+
+# Release senza quality gates
+npm run release:auto -- --force
+```
+
+**⚠️ Quando usare i bypass:**
+
+- ✅ **Hotfix critici** in produzione
+- ✅ **Modifiche solo documentazione**
+- ✅ **Fix pipeline CI/CD**
+- ❌ **Mai per sviluppo feature regolari**
+
+> 💡 **Tip**: I comandi di bypass sono documentati qui per trasparenza, ma il workflow normale dovrebbe sempre rispettare i controlli di qualità per mantenere la stabilità del progetto.
+
 ## 🤝 Contributing
 
 1. **Fork** il repository
