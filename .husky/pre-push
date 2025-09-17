@@ -8,7 +8,7 @@ fi
 
 echo "🚀 Running pre-push checks for production readiness..."
 
-# Step 1: Full test suite with coverage enforcement  
+# Step 1: Full test suite with coverage enforcement
 echo "🧪 Running full test suite with coverage validation..."
 npm run test:coverage:check
 
@@ -33,15 +33,15 @@ fi
 LAST_COMMIT_MSG=$(git log -1 --pretty=format:"%s")
 if echo "$LAST_COMMIT_MSG" | grep -qE "^(feat|fix|BREAKING CHANGE)"; then
     echo "🚀 Semantic commit detected: $LAST_COMMIT_MSG"
-    
+
     # Verifica che gli script siano disponibili
     if [ -f "scripts/auto-release.js" ] && [ -f "scripts/release-analyzer.js" ]; then
         echo "🔄 Triggering automated release..."
-        
+
         # Esegue il rilascio automatico
         node scripts/auto-release.js --type="auto" 2>/dev/null
         AUTO_RELEASE_EXIT_CODE=$?
-        
+
         if [ $AUTO_RELEASE_EXIT_CODE -eq 0 ]; then
             echo "🎉 Automated release completed successfully!"
         else

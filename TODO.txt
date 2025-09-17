@@ -1,8 +1,8 @@
-- qual'è il modo corretto di usare il package lock a livello enterprise? è inserito nel nostro progetto? le documentazioni sono aggiornate? [doing]
+- siamo sicuri che le release e i tag vengano fatti solo sul branch main,
+e che seguano il flusso git che abbiamo scelto per il progetto??
 
 - come organizzare i todo di progetto?
 
-- aggiungi una guida principi solid
 
 - aggiungi guida nestjs
 

@@ -425,10 +425,23 @@ if (require.main === module) {
         console.log('\n✨ Automated release completed successfully!');
         process.exit(0);
       } else {
-        console.log(
-          `\n📝 Release skipped: ${result.reason || 'Unknown reason'}`,
-        );
-        process.exit(1);
+        // Distinguiamo tra skip intenzionale ed errore reale
+        const isSkip =
+          result.reason &&
+          (result.reason.includes('No release needed') ||
+            result.reason.includes('No version bump needed'));
+
+        if (isSkip) {
+          console.log(
+            `\n📝 Release skipped: ${result.reason || 'Unknown reason'}`,
+          );
+          process.exit(0); // Exit pulito per skip intenzionale
+        } else {
+          console.log(
+            `\n❌ Release failed: ${result.reason || 'Unknown reason'}`,
+          );
+          process.exit(1); // Exit di errore per problemi reali
+        }
       }
     })
     .catch(error => {
