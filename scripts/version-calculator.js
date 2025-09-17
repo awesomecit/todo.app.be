@@ -11,8 +11,19 @@ const fs = require('fs');
 const path = require('path');
 
 class VersionCalculator {
-  constructor() {
+  constructor(options = {}) {
     this.packageJsonPath = path.join(process.cwd(), 'package.json');
+    this.silent = options.silent || false;
+  }
+
+  /**
+   * Logs a message if not in silent mode
+   * @param {string} message The message to log
+   */
+  log(message) {
+    if (!this.silent) {
+      console.log(message);
+    }
   }
 
   /**
@@ -219,7 +230,7 @@ class VersionCalculator {
       packageJson.version = newVersion;
 
       if (dryRun) {
-        console.log(
+        this.log(
           `🧪 DRY RUN: Would update package.json version from ${oldVersion} to ${newVersion}`,
         );
         return true;
@@ -229,12 +240,12 @@ class VersionCalculator {
         this.packageJsonPath,
         JSON.stringify(packageJson, null, 2) + '\n',
       );
-      console.log(
+      this.log(
         `📦 Updated package.json version from ${oldVersion} to ${newVersion}`,
       );
       return true;
     } catch (error) {
-      console.error(`❌ Error updating package.json: ${error.message}`);
+      this.log(`❌ Error updating package.json: ${error.message}`);
       return false;
     }
   }
@@ -342,8 +353,6 @@ class VersionCalculator {
 
 // Esecuzione script se chiamato direttamente
 if (require.main === module) {
-  const calculator = new VersionCalculator();
-
   // Parse command line arguments
   const args = process.argv.slice(2);
   const releaseType = args[0] || 'patch';
@@ -354,11 +363,13 @@ if (require.main === module) {
   const build = args.find(arg => arg.startsWith('--build='))?.split('=')[1];
   const jsonOutput = args.includes('--json');
 
+  const calculator = new VersionCalculator({ silent: jsonOutput });
+
   try {
     const currentVersion = calculator.getCurrentVersion();
 
-    console.log(`📦 Current version: ${currentVersion}`);
-    console.log(`🎯 Release type: ${releaseType}`);
+    calculator.log(`📦 Current version: ${currentVersion}`);
+    calculator.log(`🎯 Release type: ${releaseType}`);
 
     const options = {};
     if (prerelease) options.prerelease = prerelease;
@@ -382,13 +393,13 @@ if (require.main === module) {
     if (jsonOutput) {
       console.log(JSON.stringify(result, null, 2));
     } else {
-      console.log(`🔢 New version: ${result.newVersion}`);
-      console.log(`📊 Bumped: ${result.bumped ? '✅ Yes' : '❌ No'}`);
+      calculator.log(`🔢 New version: ${result.newVersion}`);
+      calculator.log(`📊 Bumped: ${result.bumped ? '✅ Yes' : '❌ No'}`);
 
       if (result.bump) {
-        console.log(`   • Major: +${result.bump.major}`);
-        console.log(`   • Minor: +${result.bump.minor}`);
-        console.log(`   • Patch: +${result.bump.patch}`);
+        calculator.log(`   • Major: +${result.bump.major}`);
+        calculator.log(`   • Minor: +${result.bump.minor}`);
+        calculator.log(`   • Patch: +${result.bump.patch}`);
       }
     }
 
