@@ -7,6 +7,17 @@ This is a backend application built with NestJS. The codebase is organized for m
 ## Key Architectural Patterns
 
 - **Modular Structure:** Features and shared logic are separated into subfolders under `src/`, e.g., `common/`, `config/`, `health/`, and `swagger/`.
+- **SOLID Principles Compliance:**
+  - **Single Responsibility:** Each class/service has one reason to change
+  - **Open/Closed:** Components are open for extension, closed for modification
+  - **Liskov Substitution:** Derived classes must be substitutable for their base classes
+  - **Interface Segregation:** Use specific interfaces rather than monolithic ones
+  - **Dependency Inversion:** Depend on abstractions, not concretions
+- **Clean Code Standards:**
+  - **Cognitive Complexity:** Functions must not exceed complexity of 10
+  - **Function Length:** Maximum 50 lines per function (excluding comments/blanks)
+  - **Parameter Limit:** Maximum 4 parameters per function
+  - **Nesting Depth:** Maximum 3 levels of nesting
 - **Validation:** Environment variables are validated using Joi in `src/config/validation.schema.ts`. Example: `JWT_SECRET` must be a string of at least 32 characters.
 - **Controllers & Services:** Controllers are in `src/app.controller.ts` and `src/health/health.controller.ts`. Services are in `src/app.service.ts` and `common/`.
 - **Custom Middleware, Filters, Interceptors:** See `src/common/middleware/`, `src/common/filters/`, and `src/common/interceptors/` for custom request handling and error management.
@@ -15,6 +26,11 @@ This is a backend application built with NestJS. The codebase is organized for m
 
 - **Build:** Use `npm run build` (if defined in `package.json`).
 - **Test:** Use `npm test` for unit tests. Integration tests are in `src/health/health.controller.integration.spec.ts`.
+- **Code Quality:**
+  - `npm run quality` - Run complete quality check (format + lint + analyze)
+  - `npm run quality:fix` - Automatically fix formatting and linting issues
+  - `npm run analyze` - Full complexity analysis
+  - `npm run format` - Auto-format code according to Prettier standards
 - **Lint:** Use `npm run lint` for code style checks.
 - **SonarJS Analysis:**
   - Cognitive Complexity: `npm run analyze:cognitive`
