@@ -218,18 +218,44 @@ Per informazioni dettagliate sul sistema di release automation:
 
 ### ⚠️ Per Situazioni di Emergenza - Bypassano i Controlli di Qualità
 
-```bash
-# Bypass pre-push hooks (salta coverage/security checks)
-SKIP_PRE_PUSH_HOOK=true git push origin main
+#### 🔄 Commit senza controlli Husky
 
-# Bypass pre-commit hooks (salta linting/testing)
+```bash
+# Bypass pre-commit hooks (salta linting/testing/coverage)
 git commit --no-verify -m "emergency fix"
 
-# Force push (bypassa tutte le protezioni)
+# Bypass commitlint validation
+git commit --no-verify -m "any commit message format"
+```
+
+#### 📤 Push senza controlli Husky
+
+```bash
+# Bypass pre-push hooks (salta tutti i controlli automatici)
+git push --no-verify origin <branch-name>
+
+# Esempi pratici
 git push --no-verify origin main
+git push --no-verify origin feat/task1_1_1
+
+# Force push bypassando tutte le protezioni
+git push --force --no-verify origin main
+```
+
+#### 🔧 Altri bypass utili
+
+```bash
+# Bypass pre-push hooks con variabile ambiente
+SKIP_PRE_PUSH_HOOK=true git push origin main
 
 # Release senza quality gates
 npm run release:auto -- --force
+
+# Husky disable temporaneo (per sessione corrente)
+export HUSKY=0
+git commit -m "commit without hooks"
+git push origin main
+unset HUSKY
 ```
 
 **⚠️ Quando usare i bypass:**

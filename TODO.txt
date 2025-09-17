@@ -1,6 +1,13 @@
+FIXARE:
+    - coverage constraint su push in branch non main
+
+TESTARE:
+
 - gestione centrealizzata timezone e best practive
 
 - validity end
+
+--------------------------------------------------------------
 
 - helper proper acid transaction and commit/release/rollback
 
@@ -22,7 +29,7 @@
 
 - interoperabilità dei dati (modulo con libreria node-git)
 
-- sistema di filtri
+- sistema di filtri (AND + payload interface + like typeorm + fino a query dentro primo livello di relazione + tipi base gestiti + se una colonna è null e passo un valore la query deve essere null | quel valore, deve essere getito questo caso o strict solo quel valore)
 
 - aumentiamo il coverage
 
