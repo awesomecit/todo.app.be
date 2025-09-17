@@ -144,6 +144,35 @@ Our automated release system automatically handles:
 - ✅ **Git tagging with version consistency**
 - ✅ **Backup and rollback mechanisms**
 
+### 🚀 Release Automation Behavior
+
+| **Commit Type**    | **Action**        | **Version Bump** | **Confirmation** |
+| ------------------ | ----------------- | ---------------- | ---------------- |
+| `feat:`            | ✅ Auto-release   | `minor`          | ❌ No prompt     |
+| `fix:`             | ✅ Auto-release   | `patch`          | ❌ No prompt     |
+| `BREAKING CHANGE:` | ✅ Auto-release   | `major`          | ❌ No prompt     |
+| `chore:`, `docs:`  | ❓ Manual confirm | `patch`          | ✅ User prompt   |
+
+**Available Release Commands:**
+
+```bash
+# Automatic release (analyzes commits)
+npm run release:auto
+
+# Specific version bumps
+npm run release:major
+npm run release:minor
+npm run release:patch
+
+# Dry run mode (preview only)
+npm run release:auto -- --dry-run
+```
+
+**Environment Detection:**
+
+- **CI/CD**: Always auto-release without prompts
+- **Local Dev**: Auto-release only for semantic commits (`feat:`, `fix:`, `BREAKING CHANGE:`)
+
 ## Dependency Categories
 
 ### Production Dependencies
