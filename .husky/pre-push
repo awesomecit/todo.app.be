@@ -9,3 +9,73 @@ echo "🏗️ Verifying build..."
 npm run build
 
 echo "✅ Pre-push checks passed! Ready to push to production."
+
+# Step 3: Automated Release Management
+echo ""
+echo "🔍 Checking for automated release needs..."
+
+# Verifica se siamo sul branch main/master
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
+    echo "📝 Skipping release check - not on main/master branch (current: $CURRENT_BRANCH)"
+    exit 0
+fi
+
+# Controlla se l'analizzatore di release è disponibile
+if [ ! -f "scripts/release-analyzer.js" ]; then
+    echo "⚠️  Release analyzer not found, skipping automated release"
+    exit 0
+fi
+
+# Esegue l'analisi di release
+echo "🔍 Analyzing commits for release needs..."
+ANALYSIS_RESULT=$(node scripts/release-analyzer.js --json 2>/dev/null)
+ANALYSIS_EXIT_CODE=$?
+
+if [ $ANALYSIS_EXIT_CODE -ne 0 ]; then
+    echo "❌ Release analysis failed, proceeding with push only"
+    exit 0
+fi
+
+# Parse del JSON per determinare se è necessario un rilascio
+NEEDS_RELEASE=$(echo "$ANALYSIS_RESULT" | node -pe "JSON.parse(require('fs').readFileSync(0, 'utf8')).analysis.needsRelease")
+RELEASE_TYPE=$(echo "$ANALYSIS_RESULT" | node -pe "JSON.parse(require('fs').readFileSync(0, 'utf8')).analysis.releaseType")
+
+if [ "$NEEDS_RELEASE" = "true" ]; then
+    echo "✅ Release needed: $RELEASE_TYPE"
+
+    # Chiede conferma all'utente (solo se non in CI/CD)
+    if [ -z "$CI" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ]; then
+        echo ""
+        echo "🤔 Do you want to create an automated release? (y/N)"
+        read -r REPLY
+
+        if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
+            echo "🔄 Triggering automated release..."
+
+            # Esegue il rilascio automatico
+            if [ -f "scripts/auto-release.js" ]; then
+                node scripts/auto-release.js --type="$RELEASE_TYPE"
+                AUTO_RELEASE_EXIT_CODE=$?
+
+                if [ $AUTO_RELEASE_EXIT_CODE -eq 0 ]; then
+                    echo "🎉 Automated release completed successfully!"
+                else
+                    echo "❌ Automated release failed (exit code: $AUTO_RELEASE_EXIT_CODE)"
+                    echo "📝 Proceeding with push anyway..."
+                fi
+            else
+                echo "⚠️  Auto-release script not found, skipping automated release"
+            fi
+        else
+            echo "📝 Skipping automated release (user choice)"
+        fi
+    else
+        echo "🤖 CI/CD environment detected, skipping interactive release"
+        echo "📝 Use 'npm run release:auto' manually if release is needed"
+    fi
+else
+    echo "📝 No release needed - proceeding with push"
+fi
+
+echo "🚀 Pre-push hook completed successfully"
