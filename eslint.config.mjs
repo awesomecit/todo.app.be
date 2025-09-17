@@ -12,6 +12,7 @@ export default tseslint.config(
     ignores: [
       'eslint.config.mjs',
       'commitlint.config.js',
+      'scripts/**/*.js',
       'dist/**/*',
       'node_modules/**/*',
       'coverage/**/*',
