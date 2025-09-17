@@ -43,15 +43,28 @@ export default tseslint.config(
       sonarjs,
     },
     rules: {
-      // 🧠 COGNITIVE COMPLEXITY - La regola principale!
-      'sonarjs/cognitive-complexity': ['warn', 15],
+      // 🧠 COGNITIVE COMPLEXITY - Clean Code Focus!
+      'sonarjs/cognitive-complexity': ['error', 10], // Ridotto da 15 a 10 per promuovere clean code
 
-      // 🔄 COMPLEXITY (regole più permissive per legacy code)
-      'complexity': ['warn', { max: 15 }], // Aumentato da 10 a 15
-      'max-lines-per-function': ['warn', { max: 80 }], // Aumentato da 50 a 80
-      'max-params': ['warn', { max: 6 }], // Aumentato da 5 a 6
-      'max-depth': ['warn', { max: 5 }], // Aumentato da 4 a 5
-      'max-nested-callbacks': ['warn', { max: 4 }], // Aumentato da 3 a 4
+      // 🔄 COMPLEXITY - Soglie restrittive per clean code
+      'complexity': ['error', { max: 10 }], // Ridotto da 15 a 10
+      'max-lines-per-function': ['error', { max: 50, skipBlankLines: true, skipComments: true }], // Ridotto da 80 a 50
+      'max-params': ['error', { max: 4 }], // Ridotto da 6 a 4 (SOLID principles)
+      'max-depth': ['error', { max: 3 }], // Ridotto da 5 a 3 (avoid deep nesting)
+      'max-nested-callbacks': ['error', { max: 3 }], // Ridotto da 4 a 3
+      'max-statements': ['error', { max: 20 }], // Nuova regola: max 20 statements per function
+      'max-statements-per-line': ['error', { max: 1 }], // Una statement per riga
+
+      // 🎯 SONARJS - Clean Code Rules
+      'sonarjs/no-duplicate-string': ['error', { threshold: 3 }], // No stringhe duplicate
+      'sonarjs/no-identical-functions': 'error', // No funzioni identiche (DRY principle)
+      'sonarjs/prefer-immediate-return': 'error', // Return immediato quando possibile
+      'sonarjs/prefer-single-boolean-return': 'error', // Single boolean return
+      'sonarjs/no-small-switch': 'error', // No switch piccoli (usa if-else)
+      'sonarjs/no-nested-template-literals': 'error', // No template literals nidificati
+      'sonarjs/no-redundant-jump': 'error', // No jump ridondanti
+      'sonarjs/no-same-line-conditional': 'error', // No condizionali sulla stessa riga
+      'sonarjs/no-useless-catch': 'error', // No catch inutili
 
       // 🎯 TYPESCRIPT (più permissivo per NestJS)
       '@typescript-eslint/no-explicit-any': 'off',
