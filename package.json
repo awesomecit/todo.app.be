@@ -7,7 +7,6 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -36,6 +35,8 @@
     "release:patch": "standard-version --release-as patch",
     "release:dry": "standard-version --dry-run",
     "release:notes": "conventional-changelog -p angular -r 2",
+    "release:generate": "./scripts/generate-release-notes.sh",
+    "release:full": "npm run test:coverage && npm run analyze && npm run release && npm run release:generate",
     "analyze": "npm run analyze:cognitive && npm run analyze:complexity && npm run analyze:functions",
     "analyze:cognitive": "eslint \"src/**/*.ts\" --format=json | jq -r '.[] | select(.messages[]?.ruleId == \"sonarjs/cognitive-complexity\") | \"📁 \" + .filePath + \"\\n\" + (.messages[] | select(.ruleId == \"sonarjs/cognitive-complexity\") | \"  🧠 Line \" + (.line | tostring) + \": \" + .message)' 2>/dev/null || echo '✅ No cognitive complexity issues found'",
     "analyze:complexity": "eslint \"src/**/*.ts\" --format=json | jq -r '.[] | select(.messages[]?.ruleId == \"complexity\") | \"📁 \" + .filePath + \"\\n\" + (.messages[] | select(.ruleId == \"complexity\") | \"  🔄 Line \" + (.line | tostring) + \": \" + .message)' 2>/dev/null || echo '✅ No cyclomatic complexity issues found'",
@@ -43,7 +44,13 @@
     "analyze:security": "eslint \"src/**/*.ts\" --format=json | jq -r '.[] | select(.messages[]?.ruleId | startswith(\"security/\")) | \"📁 \" + .filePath + \"\\n\" + (.messages[] | select(.ruleId | startswith(\"security/\")) | \"  🛡️ Line \" + (.line | tostring) + \": \" + .message)' 2>/dev/null || echo '✅ No security issues found'",
     "analyze:summary": "echo '🧠 COGNITIVE COMPLEXITY SUMMARY:' && npm run analyze:cognitive",
     "analyze:report": "mkdir -p reports && eslint \"src/**/*.ts\" --format=json -o reports/eslint-analysis.json && echo '📄 Full report saved to reports/eslint-analysis.json'",
-    "analyze:simple": "eslint \"src/**/*.ts\" | grep -E '(cognitive-complexity|complexity)' || echo '✅ No complexity issues found'"
+    "analyze:simple": "eslint \"src/**/*.ts\" | grep -E '(cognitive-complexity|complexity)' || echo '✅ No complexity issues found'",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"*.json\" \"*.md\" \".github/**/*.yml\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"*.json\" \"*.md\" \".github/**/*.yml\"",
+    "format:fix": "npm run format && npm run lint:fix",
+    "lint:fix": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --fix",
+    "quality": "npm run format:check && npm run lint && npm run analyze",
+    "quality:fix": "npm run format:fix && npm run analyze"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
