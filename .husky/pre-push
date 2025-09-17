@@ -47,7 +47,7 @@ if [ "$NEEDS_RELEASE" = "true" ]; then
     # Controlla se ci sono commit semantici che giustificano auto-release
     LAST_COMMIT_MSG=$(git log -1 --pretty=format:"%s")
     AUTO_RELEASE=false
-    
+
     # Verifica pattern semantici che richiedono auto-release
     if echo "$LAST_COMMIT_MSG" | grep -qE "^(feat|fix|BREAKING CHANGE)"; then
         AUTO_RELEASE=true
