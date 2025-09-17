@@ -56,6 +56,98 @@ class AutoRelease {
   }
 
   /**
+   * Verifica che siamo sul branch corretto per il release
+   * @returns {boolean} True se il branch è corretto
+   */
+  checkBranch() {
+    try {
+      // Per la verifica del branch, eseguiamo sempre il comando reale anche in dry-run
+      const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', {
+        encoding: 'utf8',
+      }).trim();
+
+      if (currentBranch !== 'main' && currentBranch !== 'master') {
+        console.log(`⚠️ Release can only be performed from main/master branch`);
+        console.log(`   Current branch: ${currentBranch}`);
+        return false;
+      }
+
+      console.log(`✅ Branch verification passed: ${currentBranch}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ Failed to check current branch: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Verifica che non ci siano modifiche non committed
+   * @returns {boolean} True se il working directory è pulito
+   */
+  checkWorkingDirectory() {
+    try {
+      const status = execSync('git status --porcelain', {
+        encoding: 'utf8',
+      }).trim();
+
+      if (status) {
+        console.log(
+          `⚠️ Working directory is not clean. Please commit or stash changes first.`,
+        );
+        console.log(`   Uncommitted changes:`);
+        status.split('\n').forEach(line => {
+          console.log(`   ${line}`);
+        });
+        return false;
+      }
+
+      console.log(`✅ Working directory is clean`);
+      return true;
+    } catch (error) {
+      console.error(`❌ Failed to check working directory: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Verifica che siamo sincronizzati con il repository remoto
+   * @returns {boolean} True se siamo sincronizzati
+   */
+  checkRemoteSync() {
+    try {
+      // Fetch per ottenere lo stato aggiornato del remoto
+      if (!this.options.dryRun) {
+        execSync('git fetch origin', { stdio: 'ignore' });
+      }
+
+      const localCommit = execSync('git rev-parse HEAD', {
+        encoding: 'utf8',
+      }).trim();
+      const remoteCommit = execSync(
+        'git rev-parse origin/HEAD 2>/dev/null || git rev-parse origin/main 2>/dev/null || git rev-parse origin/master',
+        {
+          encoding: 'utf8',
+        },
+      ).trim();
+
+      if (localCommit !== remoteCommit) {
+        console.log(`⚠️ Local branch is not synchronized with remote`);
+        console.log(`   Local:  ${localCommit.substring(0, 8)}`);
+        console.log(`   Remote: ${remoteCommit.substring(0, 8)}`);
+        console.log(`   Please pull latest changes first`);
+        return false;
+      }
+
+      console.log(`✅ Local branch is synchronized with remote`);
+      return true;
+    } catch (error) {
+      console.warn(`⚠️ Could not verify remote sync: ${error.message}`);
+      // Non blocchiamo il release per problemi di connettività remota
+      return true;
+    }
+  }
+
+  /**
    * Analizza i commit per determinare il tipo di release
    * @returns {Object} Risultati dell'analisi
    */
@@ -318,6 +410,32 @@ $(git log --oneline --since="$(git describe --tags --abbrev=0 2>/dev/null || ech
     try {
       console.log('🚀 Starting automated release process...\n');
 
+      // Fase 0: Verifiche di sicurezza
+      console.log('🔐 Running security checks...');
+
+      if (!this.checkBranch() && !this.options.force) {
+        return {
+          success: false,
+          reason: 'Wrong branch - releases only allowed from main/master',
+        };
+      }
+
+      if (!this.checkWorkingDirectory() && !this.options.force) {
+        return {
+          success: false,
+          reason: 'Working directory not clean - commit or stash changes first',
+        };
+      }
+
+      if (!this.checkRemoteSync() && !this.options.force) {
+        return {
+          success: false,
+          reason: 'Not synchronized with remote - pull latest changes first',
+        };
+      }
+
+      console.log('✅ All security checks passed\n');
+
       // Fase 1: Analisi
       const analysis = await this.analyzeCommits();
 
@@ -429,7 +547,10 @@ if (require.main === module) {
         const isSkip =
           result.reason &&
           (result.reason.includes('No release needed') ||
-            result.reason.includes('No version bump needed'));
+            result.reason.includes('No version bump needed') ||
+            result.reason.includes('Wrong branch') ||
+            result.reason.includes('Working directory not clean') ||
+            result.reason.includes('Not synchronized with remote'));
 
         if (isSkip) {
           console.log(

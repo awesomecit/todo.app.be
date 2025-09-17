@@ -17,7 +17,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:coverage": "jest --coverage --passWithNoTests",
-    "test:coverage:check": "jest --coverage --passWithNoTests --coverageThreshold='{}' --silent",
+    "test:coverage:check": "jest --coverage --passWithNoTests --silent",
     "test:coverage:open": "jest --coverage && open coverage/lcov-report/index.html",
     "test:coverage:ci": "jest --coverage --watchAll=false --ci --reporters=default --reporters=jest-junit",
     "test:tdd": "jest --watch --coverage --verbose",

@@ -146,18 +146,28 @@ Our automated release system automatically handles:
 
 ### 🚀 Release Automation Behavior
 
-| **Commit Type**    | **Action**        | **Version Bump** | **Confirmation** |
-| ------------------ | ----------------- | ---------------- | ---------------- |
-| `feat:`            | ✅ Auto-release   | `minor`          | ❌ No prompt     |
-| `fix:`             | ✅ Auto-release   | `patch`          | ❌ No prompt     |
-| `BREAKING CHANGE:` | ✅ Auto-release   | `major`          | ❌ No prompt     |
-| `chore:`, `docs:`  | ❓ Manual confirm | `patch`          | ✅ User prompt   |
+**🔒 Security Requirements (NEW):**
+
+- ✅ **Branch Protection**: Only `main`/`master` branches allowed
+- ✅ **Clean Working Directory**: No uncommitted changes  
+- ✅ **Remote Synchronization**: Must be up-to-date with origin
+- ✅ **Coverage Thresholds**: Tests must meet quality standards
+
+| **Commit Type**    | **Action**        | **Version Bump** | **Security Checks** |
+| ------------------ | ----------------- | ---------------- | ------------------- |
+| `feat:`            | ✅ Auto-release   | `minor`          | ✅ All checks       |
+| `fix:`             | ✅ Auto-release   | `patch`          | ✅ All checks       |
+| `BREAKING CHANGE:` | ✅ Auto-release   | `major`          | ✅ All checks       |
+| `chore:`, `docs:`  | ❓ Manual confirm | `patch`          | ✅ All checks       |
 
 **Available Release Commands:**
 
 ```bash
-# Automatic release (analyzes commits)
+# Automatic release (analyzes commits + security checks)
 npm run release:auto
+
+# Force release (bypasses safety checks - USE WITH CAUTION)
+npm run release:auto -- --force
 
 # Specific version bumps
 npm run release:major
@@ -166,6 +176,20 @@ npm run release:patch
 
 # Dry run mode (preview only)
 npm run release:auto -- --dry-run
+```
+
+**Safety & Security Features:**
+
+```bash
+# ✅ Multi-layer protection system
+git push origin main  # Triggers pre-push hook with security checks
+
+# ✅ Coverage enforcement
+npm run test:coverage:check  # Now enforces thresholds (was bypassed)
+
+# ✅ Code quality analysis  
+npm run analyze:cognitive    # Cognitive complexity analysis
+npm run analyze:complexity   # Cyclomatic complexity analysis
 ```
 
 **Environment Detection:**
