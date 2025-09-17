@@ -1,6 +1,14 @@
+#!/bin/sh
+
+# Previeni loop infinito - Skip se chiamato dal release system
+if [ "$SKIP_PRE_PUSH_HOOK" = "true" ]; then
+    echo "🔄 Skipping pre-push hook (called from release system)"
+    exit 0
+fi
+
 echo "🚀 Running pre-push checks for production readiness..."
 
-# Step 1: Full test suite with coverage enforcement
+# Step 1: Full test suite with coverage enforcement  
 echo "🧪 Running full test suite with coverage validation..."
 npm run test:coverage:check
 
@@ -21,76 +29,29 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
     exit 0
 fi
 
-# Controlla se l'analizzatore di release è disponibile
-if [ ! -f "scripts/release-analyzer.js" ]; then
-    echo "⚠️  Release analyzer not found, skipping automated release"
-    exit 0
-fi
-
-# Esegue l'analisi di release
-echo "🔍 Analyzing commits for release needs..."
-ANALYSIS_RESULT=$(node scripts/release-analyzer.js --json 2>/dev/null)
-ANALYSIS_EXIT_CODE=$?
-
-if [ $ANALYSIS_EXIT_CODE -ne 0 ]; then
-    echo "❌ Release analysis failed, proceeding with push only"
-    exit 0
-fi
-
-# Parse del JSON per determinare se è necessario un rilascio
-NEEDS_RELEASE=$(echo "$ANALYSIS_RESULT" | node -pe "JSON.parse(require('fs').readFileSync(0, 'utf8')).analysis.needsRelease")
-RELEASE_TYPE=$(echo "$ANALYSIS_RESULT" | node -pe "JSON.parse(require('fs').readFileSync(0, 'utf8')).analysis.releaseType")
-
-if [ "$NEEDS_RELEASE" = "true" ]; then
-    echo "✅ Release needed: $RELEASE_TYPE"
-
-    # Controlla se ci sono commit semantici che giustificano auto-release
-    LAST_COMMIT_MSG=$(git log -1 --pretty=format:"%s")
-    AUTO_RELEASE=false
-
-    # Verifica pattern semantici che richiedono auto-release
-    if echo "$LAST_COMMIT_MSG" | grep -qE "^(feat|fix|BREAKING CHANGE)"; then
-        AUTO_RELEASE=true
-        echo "🚀 Auto-releasing for semantic commit: $LAST_COMMIT_MSG"
-    fi
-
-    # Chiede conferma all'utente solo per commit non-semantici (e non in CI/CD)
-    if [ "$AUTO_RELEASE" = "false" ] && [ -z "$CI" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ]; then
-        echo ""
-        echo "🤔 Do you want to create an automated release? (y/N)"
-        read -r REPLY
-
-        if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
-            AUTO_RELEASE=true
-        fi
-    fi
-
-    if [ "$AUTO_RELEASE" = "true" ]; then
+# Controllo rapido se è un commit semantico che giustifica auto-release
+LAST_COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+if echo "$LAST_COMMIT_MSG" | grep -qE "^(feat|fix|BREAKING CHANGE)"; then
+    echo "🚀 Semantic commit detected: $LAST_COMMIT_MSG"
+    
+    # Verifica che gli script siano disponibili
+    if [ -f "scripts/auto-release.js" ] && [ -f "scripts/release-analyzer.js" ]; then
         echo "🔄 Triggering automated release..."
-
+        
         # Esegue il rilascio automatico
-        if [ -f "scripts/auto-release.js" ]; then
-            node scripts/auto-release.js --type="$RELEASE_TYPE"
-            AUTO_RELEASE_EXIT_CODE=$?
-
-            if [ $AUTO_RELEASE_EXIT_CODE -eq 0 ]; then
-                echo "🎉 Automated release completed successfully!"
-            else
-                echo "❌ Automated release failed (exit code: $AUTO_RELEASE_EXIT_CODE)"
-                echo "📝 Proceeding with push anyway..."
-                fi
-            else
-                echo "⚠️  Auto-release script not found, skipping automated release"
-            fi
+        node scripts/auto-release.js --type="auto" 2>/dev/null
+        AUTO_RELEASE_EXIT_CODE=$?
+        
+        if [ $AUTO_RELEASE_EXIT_CODE -eq 0 ]; then
+            echo "🎉 Automated release completed successfully!"
         else
-            echo "📝 Skipping automated release (user choice)"
+            echo "⚠️  Automated release failed, proceeding with push only"
         fi
     else
-        echo "🤖 CI/CD environment detected, skipping interactive release"
-        echo "📝 Use 'npm run release:auto' manually if release is needed"
+        echo "⚠️  Release scripts not found, skipping automated release"
     fi
 else
-    echo "📝 No release needed - proceeding with push"
+    echo "📝 Non-semantic commit - proceeding with push only"
 fi
 
 echo "🚀 Pre-push hook completed successfully"

@@ -300,6 +300,9 @@ $(git log --oneline --since="$(git describe --tags --abbrev=0 2>/dev/null || ech
   pushChanges() {
     console.log('🚀 Pushing changes and tags...');
 
+    // Imposta variabile per evitare loop del pre-push hook
+    process.env.SKIP_PRE_PUSH_HOOK = 'true';
+
     this.execCommand('git push origin HEAD');
     this.execCommand('git push origin --tags');
 
