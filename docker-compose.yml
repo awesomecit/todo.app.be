@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  todo-database:
+    image: postgres:16-alpine
+    container_name: todo-postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-todo_app_db}
+      POSTGRES_USER: ${DATABASE_USERNAME:-todo_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-todo_password}
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --locale=C'
+    ports:
+      - '${DATABASE_PORT:-5432}:5432'
+    volumes:
+      - todo_postgres_data:/var/lib/postgresql/data
+      - ./docker/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - todo-network
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DATABASE_USERNAME:-todo_user} -d ${DATABASE_NAME:-todo_app_db}',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  todo_postgres_data:
+    driver: local
+
+networks:
+  todo-network:
+    driver: bridge
+    name: todo-app-network

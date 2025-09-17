@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🧪 Running pre-commit checks for TDD workflow..."
+
+# Step 1: Lint staged files
+echo "📝 Linting staged files..."
+npm run pre-commit
+
+# Step 2: Run tests with coverage check on affected files
+echo "🎯 Running tests with coverage validation..."
+npm run test:coverage:check
+
+echo "✅ Pre-commit checks passed! Ready to commit."
