@@ -1,7 +1,7 @@
 import { CallHandler, ExecutionContext } from '@nestjs/common';
-import { of, Observable } from 'rxjs';
-import { TransformResponseInterceptor } from './transform-response.interceptor';
 import { Expose } from 'class-transformer';
+import { of } from 'rxjs';
+import { TransformResponseInterceptor } from './transform-response.interceptor';
 
 // Mock DTO class for testing
 class MockDto {
