@@ -16,8 +16,11 @@ Un backend API moderno costruito con NestJS che include un sistema completo di r
 ## 🚀 Quick Start
 
 ```bash
-# Installazione dipendenze
+# Installazione dipendenze (development)
 npm install
+
+# Installazione dipendenze (production/CI)
+npm ci
 
 # Sviluppo
 npm run start:dev
@@ -31,6 +34,17 @@ npm run build
 # Verifica qualità codice
 npm run quality
 ```
+
+## 📦 Package Management
+
+Questo progetto utilizza **npm** con `package-lock.json` per garantire riproducibilità enterprise:
+
+- ✅ **Sviluppo**: `npm install` per aggiungere dipendenze
+- ✅ **CI/CD**: `npm ci` per installazioni deterministiche
+- ✅ **Security**: `npm audit` per controlli di sicurezza
+- ✅ **Updates**: `npm outdated` per verificare aggiornamenti
+
+📖 **[Guida completa Package Management](docs/development/PACKAGE-MANAGEMENT.md)**
 
 ## 📋 Script Disponibili
 
