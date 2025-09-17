@@ -3,7 +3,7 @@
 **Epic**: EPIC 1 - Task Management API  
 **Story**: STORY 1 - Project Setup & Architecture  
 **Parent Task**: TASK 1.1 - Project Structure + Test Setup  
-**Duration**: 30-45 minutes  
+**Duration**: 30-45 minutes
 
 ## Acceptance Criteria
 
@@ -13,7 +13,6 @@
 - [ ] Environment configuration implemented
 - [ ] Health check endpoint functional
 - [ ] Application starts with `npm run start:dev`
-- [ ] Hot reload active
 
 ## Implementation Plan
 
@@ -21,8 +20,8 @@
 
 ```bash
 npm install -g @nestjs/cli
-nest new task-management-api
-cd task-management-api
+nest new todo.app.be
+cd todo.app.be
 ```
 
 ### Phase 2: TypeScript Configuration
@@ -69,16 +68,18 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
-  app.useGlobalPipes(new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  }));
-  
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  
+
   console.log(`🚀 Application running on: ${await app.getUrl()}`);
 }
 
@@ -142,7 +143,7 @@ export class AppService {
       status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || 'development',
     };
   }
 }
