@@ -38,7 +38,7 @@ function handleSpecialObjects(value: unknown): string | null {
   // Gestione speciale per array: li rendiamo leggibili
   if (Array.isArray(value)) {
     try {
-      return `[${value.map((item) => safeStringify(item)).join(', ')}]`;
+      return `[${value.map(item => safeStringify(item)).join(', ')}]`;
     } catch {
       return '[Array]';
     }
@@ -59,33 +59,36 @@ function handleSpecialObjects(value: unknown): string | null {
 
 function handleGenericObject(value: unknown): string {
   try {
-    const jsonString = JSON.stringify(value, null, 2);
-    // Se l'oggetto è troppo grande, lo tronchiamo per evitare log giganteschi
-    return jsonString.length > 500
-      ? `${jsonString.substring(0, 500)}...`
-      : jsonString;
+    return tryJsonStringify(value);
   } catch {
-    // Se JSON.stringify fallisce (riferimenti circolari, etc),
-    // proviamo a estrarre almeno le chiavi principali
-    try {
-      const keys = Object.keys(value as Record<string, unknown>);
-      return `{Object with keys: ${keys.join(', ')}}`;
-    } catch {
-      // Ultimo fallback: almeno indiciamo che tipo di oggetto è
-      // Gestiamo il constructor in modo type-safe
-      if (value && typeof value === 'object' && 'constructor' in value) {
-        const constructor = value.constructor;
-        if (
-          constructor &&
-          typeof constructor === 'function' &&
-          constructor.name
-        ) {
-          return `[${constructor.name}]`;
-        }
-      }
-      return '[Object]';
+    return fallbackObjectRepresentation(value);
+  }
+}
+
+function tryJsonStringify(value: unknown): string {
+  const jsonString = JSON.stringify(value, null, 2);
+  return jsonString.length > 500
+    ? `${jsonString.substring(0, 500)}...`
+    : jsonString;
+}
+
+function fallbackObjectRepresentation(value: unknown): string {
+  try {
+    const keys = Object.keys(value as Record<string, unknown>);
+    return `{Object with keys: ${keys.join(', ')}}`;
+  } catch {
+    return getConstructorName(value);
+  }
+}
+
+function getConstructorName(value: unknown): string {
+  if (value && typeof value === 'object' && 'constructor' in value) {
+    const constructor = value.constructor;
+    if (constructor && typeof constructor === 'function' && constructor.name) {
+      return `[${constructor.name}]`;
     }
   }
+  return '[Object]';
 }
 
 // Helper function avanzata per convertire valori unknown in stringhe meaningful
@@ -122,7 +125,7 @@ function safeStringify(value: unknown): string {
 
 // Formatter per il timestamp con timezone configurabile
 const timestampWithTimezone = (timezone: string) => {
-  return winston.format((info) => {
+  return winston.format(info => {
     // Ottieni l'ora corrente
     const date = new Date();
 
@@ -162,40 +165,68 @@ export class CustomLogger implements LoggerService {
   private logger: winston.Logger;
 
   constructor(private configService: ConfigService) {
-    // Otteniamo l'ambiente di esecuzione
-    const nodeEnv =
-      this.configService.get<string>('NODE_ENV') ||
-      process.env.NODE_ENV ||
-      'development';
+    const config = this.getLoggerConfig();
+    const formats = this.createLogFormats(config.timezone);
+    const transports = this.createTransports(config, formats);
 
-    // Otteniamo le configurazioni con type safety e valori di default intelligenti
-    // Diamo priorità alle configurazioni specifiche per l'ambiente
-    const logLevel =
-      this.configService.get<string>(`logging.${nodeEnv}.level`) ||
-      this.configService.get<string>('logging.level') ||
-      (nodeEnv === 'production' ? 'info' : 'debug');
-    const maxFiles =
-      this.configService.get<string>(`logging.${nodeEnv}.maxFiles`) ||
-      this.configService.get<string>('logging.maxFiles') ||
-      '14d';
-    const maxSize =
-      this.configService.get<string>(`logging.${nodeEnv}.maxSize`) ||
-      this.configService.get<string>('logging.maxSize') ||
-      '20m';
-    const timezone =
-      this.configService.get<string>(`logging.${nodeEnv}.timezone`) ||
-      this.configService.get<string>('logging.timezone') ||
-      'Europe/Rome';
+    this.logger = winston.createLogger({
+      level: config.logLevel,
+      transports,
+    });
 
-    // Formato comune per timestamp con timezone
+    this.logger.info(
+      `Logger initialized with environment: ${config.nodeEnv}, timezone: ${config.timezone}, level: ${config.logLevel}`,
+    );
+  }
+
+  /**
+   * Ottiene la configurazione del logger dal ConfigService
+   */
+  private getLoggerConfig() {
+    const nodeEnv = this.getConfigValue('NODE_ENV', 'development');
+
+    return {
+      nodeEnv,
+      logLevel: this.getLogConfigValue(
+        'level',
+        nodeEnv,
+        nodeEnv === 'production' ? 'info' : 'debug',
+      ),
+      maxFiles: this.getLogConfigValue('maxFiles', nodeEnv, '14d'),
+      maxSize: this.getLogConfigValue('maxSize', nodeEnv, '20m'),
+      timezone: this.getLogConfigValue('timezone', nodeEnv, 'Europe/Rome'),
+    };
+  }
+
+  private getConfigValue(key: string, defaultValue: string): string {
+    return (
+      this.configService.get<string>(key) || process.env[key] || defaultValue
+    );
+  }
+
+  private getLogConfigValue(
+    configKey: string,
+    nodeEnv: string,
+    defaultValue: string,
+  ): string {
+    return (
+      this.configService.get<string>(`logging.${nodeEnv}.${configKey}`) ||
+      this.configService.get<string>(`logging.${configKey}`) ||
+      defaultValue
+    );
+  }
+
+  /**
+   * Crea i formati per file e console
+   */
+  private createLogFormats(timezone: string) {
     const timestampFormat = timestampWithTimezone(timezone);
 
-    // Formato specifico per i file di log (senza colori)
     const fileFormat = winston.format.combine(
       timestampFormat,
-      winston.format.uncolorize(), // Rimuove i codici colore ANSI
+      winston.format.uncolorize(),
       winston.format.errors({ stack: true }),
-      winston.format.printf((info) => {
+      winston.format.printf(info => {
         const timestamp =
           typeof info.timestamp === 'string'
             ? info.timestamp
@@ -209,17 +240,15 @@ export class CustomLogger implements LoggerService {
           ? `, "stack":"${safeStringify(info.stack)}"`
           : '';
 
-        // Nuovo formato che mette il timestamp all'inizio della riga come nella console
         return `[${timestamp}][${level}]: ${message}${context}"timestamp":"${timestamp}"${stack}}`;
       }),
     );
 
-    // Formato per la console (con colori)
     const consoleFormat = winston.format.combine(
       timestampFormat,
       winston.format.errors({ stack: true }),
       winston.format.colorize(),
-      winston.format.printf((info) => {
+      winston.format.printf(info => {
         const timestamp =
           typeof info.timestamp === 'string'
             ? info.timestamp
@@ -233,49 +262,57 @@ export class CustomLogger implements LoggerService {
       }),
     );
 
-    // Configurazione delle transports in base all'ambiente
+    return { fileFormat, consoleFormat };
+  }
+
+  /**
+   * Crea i transport per il logger
+   */
+  private createTransports(
+    config: {
+      nodeEnv: string;
+      logLevel: string;
+      maxFiles: string;
+      maxSize: string;
+    },
+    formats: {
+      fileFormat: winston.Logform.Format;
+      consoleFormat: winston.Logform.Format;
+    },
+  ): winston.transport[] {
     const transports: winston.transport[] = [
-      // Console output con formato colorato
       new winston.transports.Console({
-        format: consoleFormat,
-        // In development mostriamo tutto, in production solo da warning in su (se non specificato altrimenti)
-        level: nodeEnv === 'production' ? logLevel || 'warn' : logLevel,
+        format: formats.consoleFormat,
+        level:
+          config.nodeEnv === 'production'
+            ? config.logLevel || 'warn'
+            : config.logLevel,
       }),
     ];
 
     // In production e staging aggiungiamo sempre i file di log
-    if (nodeEnv !== 'test') {
+    if (config.nodeEnv !== 'test') {
       transports.push(
-        // File per errori - senza colori ANSI e con timestamp completo
         new winston.transports.DailyRotateFile({
           filename: 'logs/error-%DATE%.log',
           datePattern: 'YYYY-MM-DD',
           level: 'error',
-          maxFiles,
-          maxSize,
-          format: fileFormat,
+          maxFiles: config.maxFiles,
+          maxSize: config.maxSize,
+          format: formats.fileFormat,
         }),
 
-        // File per tutti i log - senza colori ANSI e con timestamp completo
         new winston.transports.DailyRotateFile({
           filename: 'logs/combined-%DATE%.log',
           datePattern: 'YYYY-MM-DD',
-          maxFiles,
-          maxSize,
-          format: fileFormat,
+          maxFiles: config.maxFiles,
+          maxSize: config.maxSize,
+          format: formats.fileFormat,
         }),
       );
     }
 
-    this.logger = winston.createLogger({
-      level: logLevel,
-      transports,
-    });
-
-    // Log iniziale con informazioni sulla timezone e ambiente configurati
-    this.logger.info(
-      `Logger initialized with environment: ${nodeEnv}, timezone: ${timezone}, level: ${logLevel}`,
-    );
+    return transports;
   }
 
   log(message: string, context?: string): void {

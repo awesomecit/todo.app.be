@@ -113,7 +113,7 @@ export class DtoValidatorService {
    */
   private formatValidationErrors(errors: ValidationError[]): string {
     return errors
-      .flatMap((error) => Object.values(error.constraints || {}))
+      .flatMap(error => Object.values(error.constraints || {}))
       .join(', ');
   }
 
@@ -128,7 +128,7 @@ export class DtoValidatorService {
     value: any;
     constraints: string[];
   }> {
-    return errors.map((error) => ({
+    return errors.map(error => ({
       property: error.property,
       value: error.value,
       constraints: Object.values(error.constraints || {}),

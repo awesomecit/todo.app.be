@@ -1,58 +1,46 @@
+/**
+ * Helper function to get environment variable with fallback
+ * Reduces cognitive complexity by eliminating repeated ternary operations
+ */
+const getEnvVar = (key: string, fallback: string): string => {
+  const value = process.env[key];
+  return value && value !== '' ? value : fallback;
+};
+
+/**
+ * Helper function to get environment variable as integer with fallback
+ * Reduces cognitive complexity by eliminating repeated parsing logic
+ */
+const getEnvInt = (key: string, fallback: number): number => {
+  const value = process.env[key];
+  if (!value) return fallback;
+
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? fallback : parsed;
+};
+
+/**
+ * Configuration factory with reduced cognitive complexity
+ * Extracted helper functions to minimize branching logic
+ */
 export default () => ({
-  port: isNaN(parseInt(process.env.PORT ?? '', 10))
-    ? 3000
-    : parseInt(process.env.PORT ?? '', 10),
-  nodeEnv:
-    process.env.NODE_ENV && process.env.NODE_ENV !== ''
-      ? process.env.NODE_ENV
-      : 'test',
+  port: getEnvInt('PORT', 3000),
+  nodeEnv: getEnvVar('NODE_ENV', 'test'),
   database: {
-    host:
-      process.env.DATABASE_HOST && process.env.DATABASE_HOST !== ''
-        ? process.env.DATABASE_HOST
-        : 'localhost',
-    port: isNaN(parseInt(process.env.DATABASE_PORT ?? '', 10))
-      ? 5432
-      : parseInt(process.env.DATABASE_PORT ?? '', 10),
-    username:
-      process.env.DATABASE_USERNAME && process.env.DATABASE_USERNAME !== ''
-        ? process.env.DATABASE_USERNAME
-        : 'postgres',
-    password:
-      process.env.DATABASE_PASSWORD && process.env.DATABASE_PASSWORD !== ''
-        ? process.env.DATABASE_PASSWORD
-        : 'password',
-    name:
-      process.env.DATABASE_NAME && process.env.DATABASE_NAME !== ''
-        ? process.env.DATABASE_NAME
-        : 'database_app',
+    host: getEnvVar('DATABASE_HOST', 'localhost'),
+    port: getEnvInt('DATABASE_PORT', 5432),
+    username: getEnvVar('DATABASE_USERNAME', 'postgres'),
+    password: getEnvVar('DATABASE_PASSWORD', 'password'),
+    name: getEnvVar('DATABASE_NAME', 'database_app'),
   },
   jwt: {
-    secret:
-      process.env.JWT_SECRET && process.env.JWT_SECRET !== ''
-        ? process.env.JWT_SECRET
-        : 'your-secret-key',
-    expiresIn:
-      process.env.JWT_EXPIRES_IN && process.env.JWT_EXPIRES_IN !== ''
-        ? process.env.JWT_EXPIRES_IN
-        : '1d',
+    secret: getEnvVar('JWT_SECRET', 'your-secret-key'),
+    expiresIn: getEnvVar('JWT_EXPIRES_IN', '1d'),
   },
   logging: {
-    level:
-      process.env.LOG_LEVEL && process.env.LOG_LEVEL !== ''
-        ? process.env.LOG_LEVEL
-        : 'info',
-    maxFiles:
-      process.env.LOG_MAX_FILES && process.env.LOG_MAX_FILES !== ''
-        ? process.env.LOG_MAX_FILES
-        : '14d',
-    maxSize:
-      process.env.LOG_MAX_SIZE && process.env.LOG_MAX_SIZE !== ''
-        ? process.env.LOG_MAX_SIZE
-        : '20m',
-    timezone:
-      process.env.LOG_TIMEZONE && process.env.LOG_TIMEZONE !== ''
-        ? process.env.LOG_TIMEZONE
-        : 'Europe/Rome',
+    level: getEnvVar('LOG_LEVEL', 'info'),
+    maxFiles: getEnvVar('LOG_MAX_FILES', '14d'),
+    maxSize: getEnvVar('LOG_MAX_SIZE', '20m'),
+    timezone: getEnvVar('LOG_TIMEZONE', 'Europe/Rome'),
   },
 });

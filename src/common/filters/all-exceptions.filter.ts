@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import * as fs from 'fs';
+import { IncomingHttpHeaders } from 'http';
 import * as path from 'path';
 import { CustomLogger } from '../logger/logger.service';
 
@@ -38,12 +39,104 @@ interface ErrorResponse {
   stack?: string;
 }
 
+interface ErrorResponseContext {
+  exception: unknown;
+  request: Request;
+  status: number;
+  message: string | string[];
+  errors?: Record<string, unknown>;
+}
+
+interface ErrorContext {
+  exception: unknown;
+  request: Request;
+  status: number;
+  message: string | string[];
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(private readonly logger: CustomLogger) {}
 
+  /**
+   * Helper per verificare se un header dovrebbe essere aggiunto
+   */
+  private shouldIncludeHeader(key: string): boolean {
+    return key !== 'host' && key !== 'connection';
+  }
+
+  /**
+   * Helper per aggiungere headers al comando curl
+   */
+  private addHeadersToCurl(
+    headers: IncomingHttpHeaders,
+    curlCommand: string,
+  ): string {
+    if (!headers || typeof headers !== 'object') {
+      return curlCommand;
+    }
+
+    let result = curlCommand;
+
+    for (const key in headers) {
+      if (this.isValidHeaderProperty(headers, key)) {
+        result = this.addSingleHeader(headers, key, result);
+      }
+    }
+
+    return result;
+  }
+
+  private isValidHeaderProperty(
+    headers: IncomingHttpHeaders,
+    key: string,
+  ): boolean {
+    return (
+      Object.prototype.hasOwnProperty.call(headers, key) &&
+      this.shouldIncludeHeader(key)
+    );
+  }
+
+  private addSingleHeader(
+    headers: IncomingHttpHeaders,
+    key: string,
+    result: string,
+  ): string {
+    const value = headers[key];
+    return value !== undefined
+      ? `${result} -H '${key}: ${String(value)}'`
+      : result;
+  }
+
+  /**
+   * Helper per aggiungere body al comando curl
+   */
+  private addBodyToCurl(body: unknown, curlCommand: string): string {
+    if (!body || typeof body !== 'object' || Object.keys(body).length === 0) {
+      return curlCommand;
+    }
+
+    let result = curlCommand + ` -H 'Content-Type: application/json'`;
+
+    try {
+      const safeBody: Record<string, unknown> = {};
+      for (const key of Object.keys(body)) {
+        safeBody[key] = (body as Record<string, unknown>)[key];
+      }
+
+      const bodyStr = JSON.stringify(safeBody, (_key, value): unknown => {
+        return value === undefined ? null : value;
+      });
+
+      result += ` -d '${bodyStr}'`;
+    } catch {
+      result += ` -d '{}'`;
+    }
+
+    return result;
+  }
+
   private generateCurlCommand(request: Request): string {
-    // Uso di tipizzazione esplicita per evitare unsafe destructuring
     const method = request.method;
     const url = request.url;
     const headers = request.headers;
@@ -57,43 +150,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Initialize the curl command
     let curlCommand = `curl -X ${method} '${fullUrl}'`;
 
-    // Risoluzione più sicura usando type assertion e type guards
-    if (headers && typeof headers === 'object') {
-      // Itera sulle chiavi in modo type-safe
-      for (const key in headers) {
-        if (Object.prototype.hasOwnProperty.call(headers, key)) {
-          if (key !== 'host' && key !== 'connection') {
-            const value = headers[key];
-            curlCommand += ` -H '${key}: ${String(value)}'`;
-          }
-        }
-      }
-    }
+    // Add headers using helper
+    curlCommand = this.addHeadersToCurl(headers, curlCommand);
 
-    // Add body if present - gestione sicura della serializzazione
-    if (body && typeof body === 'object' && Object.keys(body).length > 0) {
-      curlCommand += ` -H 'Content-Type: application/json'`;
-
-      try {
-        // Serializzazione sicura con tipizzazione esplicita
-        const safeBody: Record<string, unknown> = {};
-        for (const key of Object.keys(body)) {
-          safeBody[key] = (body as Record<string, unknown>)[key];
-        }
-
-        // Usiamo il safeBody tipizzato invece del body diretto
-        const bodyStr = JSON.stringify(safeBody, (_key, value): unknown => {
-          // Funzione replacer con tipo di ritorno esplicito
-          return value === undefined ? null : value;
-        });
-
-        curlCommand += ` -d '${bodyStr}'`;
-      } catch {
-        // Fallback in caso di errore con un oggetto vuoto literal
-        // Usiamo _err per indicare che è intenzionalmente non utilizzato
-        curlCommand += ` -d '{}'`;
-      }
-    }
+    // Add body using helper
+    curlCommand = this.addBodyToCurl(body, curlCommand);
 
     return curlCommand;
   }
@@ -161,6 +222,98 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   /**
+   * Helper per gestire HttpException specificamente
+   */
+  private handleHttpException(exception: HttpException): {
+    status: number;
+    message: string | string[];
+    errors?: Record<string, unknown>;
+  } {
+    const status = exception.getStatus();
+    const exceptionResponse = exception.getResponse();
+
+    return this.processHttpExceptionResponse(
+      status,
+      exceptionResponse,
+      exception.message,
+    );
+  }
+
+  private processHttpExceptionResponse(
+    status: number,
+    exceptionResponse: string | object,
+    fallbackMessage: string,
+  ): {
+    status: number;
+    message: string | string[];
+    errors?: Record<string, unknown>;
+  } {
+    if (typeof exceptionResponse === 'string') {
+      return { status, message: exceptionResponse };
+    }
+
+    if (typeof exceptionResponse !== 'object' || exceptionResponse === null) {
+      return { status, message: fallbackMessage };
+    }
+
+    return this.handleObjectResponse(
+      status,
+      exceptionResponse as HttpExceptionResponse,
+      fallbackMessage,
+    );
+  }
+
+  private handleObjectResponse(
+    status: number,
+    typedResponse: HttpExceptionResponse,
+    fallbackMessage: string,
+  ): {
+    status: number;
+    message: string | string[];
+    errors?: Record<string, unknown>;
+  } {
+    const baseResult = {
+      status,
+      message: typedResponse.message || fallbackMessage,
+    };
+
+    if (status === HttpStatus.BAD_REQUEST && typedResponse.message) {
+      return this.handleValidationError(baseResult, typedResponse);
+    }
+
+    return {
+      ...baseResult,
+      errors: typedResponse.errors as Record<string, unknown>,
+    };
+  }
+
+  private handleValidationError(
+    baseResult: { status: number; message: string | string[] },
+    typedResponse: HttpExceptionResponse,
+  ): {
+    status: number;
+    message: string | string[];
+    errors?: Record<string, unknown>;
+  } {
+    if (Array.isArray(typedResponse.message)) {
+      return {
+        ...baseResult,
+        message: 'Errori di validazione',
+        errors: {
+          validationErrors: typedResponse.message,
+          details: 'Controlla i campi indicati e riprova',
+          ...(typedResponse.errors as Record<string, unknown>),
+        },
+      };
+    }
+
+    return {
+      ...baseResult,
+      errors: typedResponse.errors as Record<string, unknown>,
+    };
+  }
+
+  /**
    * Estrae lo status e il messaggio dall'eccezione
    */
   private extractExceptionDetails(exception: unknown): {
@@ -168,63 +321,32 @@ export class AllExceptionsFilter implements ExceptionFilter {
     message: string | string[];
     errors?: Record<string, unknown>;
   } {
-    let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message: string | string[] = 'Internal server error';
-    let errors: Record<string, unknown> | undefined = undefined;
-
     // Gestione specifica per HttpException con type guards
     if (exception instanceof HttpException) {
-      status = exception.getStatus();
-      const exceptionResponse = exception.getResponse();
-
-      if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-        const typedResponse = exceptionResponse as HttpExceptionResponse;
-
-        // Gestione specifica per errori di validazione (status 400)
-        if (status === HttpStatus.BAD_REQUEST && typedResponse.message) {
-          if (Array.isArray(typedResponse.message)) {
-            // Gli errori di class-validator vengono spesso come array di stringhe
-            message = 'Errori di validazione';
-            errors = {
-              validationErrors: typedResponse.message,
-              details: 'Controlla i campi indicati e riprova',
-            };
-          } else {
-            message = typedResponse.message;
-          }
-        } else {
-          message = typedResponse.message || exception.message;
-        }
-
-        // Cast esplicito per evitare assegnamento non sicuro
-        if (typedResponse.errors) {
-          errors = {
-            ...errors,
-            ...(typedResponse.errors as Record<string, unknown>),
-          };
-        }
-      } else if (typeof exceptionResponse === 'string') {
-        message = exceptionResponse;
-      } else {
-        message = exception.message;
-      }
-    } else if (exception instanceof Error) {
-      // Gestione per Error generici
-      message = exception.message;
+      return this.handleHttpException(exception);
     }
 
-    return { status, message, errors };
+    // Gestione per Error generici
+    if (exception instanceof Error) {
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: exception.message,
+      };
+    }
+
+    // Fallback per eccezioni sconosciute
+    return {
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: 'Internal server error',
+    };
   }
 
   /**
    * Gestisce il logging dell'eccezione in base alla sua gravità
    */
-  private handleErrorLogging(
-    exception: unknown,
-    request: Request,
-    status: number,
-    message: string | string[],
-  ): void {
+  private handleErrorLogging(errorContext: ErrorContext): void {
+    const { exception, request, status, message } = errorContext;
+
     // Prepariamo i dati di log in modo type-safe
     const errorLogData: ErrorLogData = {
       method: request.method,
@@ -260,13 +382,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
   /**
    * Prepara la risposta di errore da inviare al client
    */
-  private prepareErrorResponse(
-    exception: unknown,
-    request: Request,
-    status: number,
-    message: string | string[],
-    errors?: Record<string, unknown>,
-  ): ErrorResponse {
+  private prepareErrorResponse(context: ErrorResponseContext): ErrorResponse {
+    const { exception, request, status, message, errors } = context;
+
     // Response standardizzata con tipizzazione forte
     const errorResponse: ErrorResponse = {
       statusCode: status,
@@ -298,16 +416,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { status, message, errors } = this.extractExceptionDetails(exception);
 
     // Gestisci il logging
-    this.handleErrorLogging(exception, request, status, message);
+    this.handleErrorLogging({ exception, request, status, message });
 
     // Prepara e invia la risposta
-    const errorResponse = this.prepareErrorResponse(
+    const errorResponse = this.prepareErrorResponse({
       exception,
       request,
       status,
       message,
       errors,
-    );
+    });
 
     response.status(status).json(errorResponse);
   }

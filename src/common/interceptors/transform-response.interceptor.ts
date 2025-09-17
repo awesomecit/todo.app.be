@@ -20,14 +20,14 @@ export class TransformResponseInterceptor<T, R>
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<R> {
     return next.handle().pipe(
-      map((data) => {
+      map(data => {
         if (!data) {
           return data;
         }
 
         // Handle arrays
         if (Array.isArray(data)) {
-          return data.map((item) => this.transformObject(item)) as unknown as R;
+          return data.map(item => this.transformObject(item)) as unknown as R;
         }
 
         // Handle single objects
