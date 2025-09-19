@@ -49,8 +49,12 @@ This is a backend application built with NestJS. The codebase is organized for m
   - **Error messages format:** Use `ERROR_MESSAGE` constants (e.g., `USER_NOT_FOUND`, `INVALID_CREDENTIALS`)
   - **English only:** All variables, messages, and code comments must be in English
 - **Testing Strategy:**
+  - **TEST-FIRST MANDATORY:** Always implement tests BEFORE writing any production code. No exceptions.
+  - **TDD Red-Green-Refactor:** For every new file, function, or feature: 1) Write failing test (Red), 2) Minimal implementation (Green), 3) Improve code quality (Refactor)
+  - **Unit tests first:** Every service, controller, and utility function must have comprehensive unit tests before implementation
   - **E2E tests required:** Always implement E2E tests for business logic/feature integration
   - **Validation testing:** Include comprehensive validation tests for all controller endpoints
+  - **Test coverage:** Aim for 100% test coverage on all business logic and critical paths
 - **Environment Management:**
   - **Single environment loader:** Use only one centralized point to load environment variables
   - **Environment support:** Handle `development`, `production`, `test`, `staging` environments
@@ -91,6 +95,10 @@ This is a backend application built with NestJS. The codebase is organized for m
 
 ## Project-Specific Conventions
 
+- **Entity Naming:** All entity classes must use **singular names** (e.g., `Division`, `User`, `Product`)
+- **Resource Naming:** All NestJS resources (services, controllers, modules, repositories) must use **plural names** (e.g., `DivisionsService`, `DivisionsController`, `DivisionsModule`, `DivisionsRepository`)
+- **File Naming:** Entity files use singular (e.g., `division.entity.ts`), resource files use plural (e.g., `divisions.service.ts`)
+- **Database Tables:** Use plural names in snake_case (e.g., `divisions`, `users`, `products`)
 - **Logging:** Configurable via environment variables (see `LOG_LEVEL`, `LOG_MAX_FILES`, `LOG_MAX_SIZE`, `LOG_TIMEZONE` in `validation.schema.ts`).
 - **Default Values:** Many config options have sensible defaults for local development.
 - **Database:** PostgreSQL with TypeORM integration. Use `localhost` for local development, `todo-database` for Docker environments.

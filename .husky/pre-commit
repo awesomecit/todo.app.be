@@ -4,8 +4,8 @@ echo "🧪 Running pre-commit checks for TDD workflow..."
 echo "📝 Linting staged files..."
 npm run pre-commit
 
-# Step 2: Run tests with coverage check on affected files
-echo "🎯 Running tests with coverage validation..."
-npm run test:coverage:check
+# Step 2: Run unit tests (fast feedback)
+echo "🎯 Running unit tests..."
+npm test
 
 echo "✅ Pre-commit checks passed! Ready to commit."

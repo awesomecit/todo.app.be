@@ -56,10 +56,42 @@ Questo progetto utilizza **npm** con `package-lock.json` per garantire riproduci
 
 ### Testing
 
-- `npm test` - Esegue i test
-- `npm run test:watch` - Test in modalità watch
-- `npm run test:coverage` - Test con coverage report
+- `npm test` - Esegue i test unitari
+- `npm run test:watch` - Test unitari in modalità watch
+- `npm run test:coverage` - Test unitari con coverage report
 - `npm run test:tdd` - Modalità TDD interattiva
+
+### Testing Avanzato (Database Integration)
+
+- `npm run test:integration` - Test di integrazione database
+- `npm run test:integration:watch` - Test integrazione in modalità watch
+- `npm run test:integration:cov` - Test integrazione con coverage
+- `npm run test:integration:safe` - Test integrazione con auto-start database
+- `npm run test:e2e` - Test end-to-end completi
+- `npm run test:e2e:watch` - Test E2E in modalità watch
+- `npm run test:e2e:safe` - Test E2E con auto-start database
+- `npm run test:safe` - Tutti i test con protezioni ambiente
+
+### Database Management per Test
+
+```bash
+# Auto-start database per test (raccomandato)
+./scripts/ensure-database.sh
+
+# Oppure manuale
+docker compose up -d todo-database
+
+# Verifica stato database
+npm run db:status
+
+# Gestione database
+npm run db:start    # Avvia container
+npm run db:stop     # Ferma container
+npm run db:restart  # Riavvia container
+
+# Verifica connettività
+npm run test:integration:guard
+```
 
 ### Qualità Codice
 
@@ -206,6 +238,18 @@ npm run start:dev
 
 ## 📚 Documentazione Completa
 
+### Per Sviluppatori
+
+- **[🚀 Development Setup](docs/development/NESTJS_GUIDE.md)** - Setup ambiente di sviluppo
+- **[🔀 Merge Workflow](docs/development/MERGE_WORKFLOW.md)** - Guida completa merge e release
+- **[📝 Git Commit Guide](docs/development/GIT_COMMIT_GUIDE.md)** - Convenzioni commit
+- **[📦 Package Management](docs/development/PACKAGE-MANAGEMENT.md)** - Gestione dipendenze
+- **[🧪 Testing Strategy](docs/testing/TDD_COVERAGE_GUIDE.md)** - TDD e copertura test
+- **[🗄️ Database Integration](docs/testing/DATABASE_INTEGRATION_GUIDE.md)** - Test database PostgreSQL
+- **[⚡ SonarJS Usage](docs/development/SONARJS_USAGE_GUIDE.md)** - Analisi qualità codice
+
+### Per Release Automation
+
 Per informazioni dettagliate sul sistema di release automation:
 
 - **[📋 Overview Completo](./docs/release/README.md)** - Architettura e funzionalità del sistema
@@ -218,18 +262,44 @@ Per informazioni dettagliate sul sistema di release automation:
 
 ### ⚠️ Per Situazioni di Emergenza - Bypassano i Controlli di Qualità
 
-```bash
-# Bypass pre-push hooks (salta coverage/security checks)
-SKIP_PRE_PUSH_HOOK=true git push origin main
+#### 🔄 Commit senza controlli Husky
 
-# Bypass pre-commit hooks (salta linting/testing)
+```bash
+# Bypass pre-commit hooks (salta linting/testing/coverage)
 git commit --no-verify -m "emergency fix"
 
-# Force push (bypassa tutte le protezioni)
+# Bypass commitlint validation
+git commit --no-verify -m "any commit message format"
+```
+
+#### 📤 Push senza controlli Husky
+
+```bash
+# Bypass pre-push hooks (salta tutti i controlli automatici)
+git push --no-verify origin <branch-name>
+
+# Esempi pratici
 git push --no-verify origin main
+git push --no-verify origin feat/task1_1_1
+
+# Force push bypassando tutte le protezioni
+git push --force --no-verify origin main
+```
+
+#### 🔧 Altri bypass utili
+
+```bash
+# Bypass pre-push hooks con variabile ambiente
+SKIP_PRE_PUSH_HOOK=true git push origin main
 
 # Release senza quality gates
 npm run release:auto -- --force
+
+# Husky disable temporaneo (per sessione corrente)
+export HUSKY=0
+git commit -m "commit without hooks"
+git push origin main
+unset HUSKY
 ```
 
 **⚠️ Quando usare i bypass:**
@@ -241,13 +311,164 @@ npm run release:auto -- --force
 
 > 💡 **Tip**: I comandi di bypass sono documentati qui per trasparenza, ma il workflow normale dovrebbe sempre rispettare i controlli di qualità per mantenere la stabilità del progetto.
 
+## 🔀 Workflow Branch → Main Merge
+
+### 📋 Procedura Completa Merge su Main
+
+#### 1️⃣ **Pre-Check: Verifica Stato Branch**
+
+```bash
+# Verifica branch corrente
+git branch --show-current
+
+# Verifica stato clean working directory
+git status
+
+# Verifica ultimi commit
+git log --oneline -5
+
+# Verifica diferenze con main
+git log main..HEAD --oneline
+```
+
+#### 2️⃣ **Update e Sincronizzazione**
+
+```bash
+# Fetch ultimo stato da remoto
+git fetch origin
+
+# Aggiorna main locale
+git checkout main
+git pull origin main
+
+# Ritorna al tuo branch feature
+git checkout feat/your-feature
+
+# Verifica se ci sono conflitti potenziali
+git log HEAD..main --oneline
+```
+
+#### 3️⃣ **Rebase/Merge su Main (Opzione A - Rebase)**
+
+```bash
+# Rebase del tuo branch su main aggiornato
+git rebase main
+
+# Se ci sono conflitti:
+# 1. Risolvi i conflitti nei file
+# 2. git add <file-risolti>
+# 3. git rebase --continue
+
+# Verifica che tutto sia ok
+npm run test && npm run test:integration && npm run build
+```
+
+#### 3️⃣ **Merge su Main (Opzione B - Merge Commit)**
+
+```bash
+# Passa a main
+git checkout main
+
+# Merge del branch feature
+git merge feat/your-feature
+
+# Oppure merge senza fast-forward (preserva storia branch)
+git merge --no-ff feat/your-feature
+```
+
+#### 4️⃣ **Pre-Push Final Check**
+
+```bash
+# Test completo prima del push
+npm run test:coverage
+npm run test:integration
+npm run test:e2e
+npm run build
+npm run quality
+
+# Verifica commit message format
+git log --oneline -3
+```
+
+#### 5️⃣ **Push su Main con Release Automation**
+
+```bash
+# Push che triggera automaticamente il sistema di release
+git push origin main
+
+# Il sistema farà automaticamente:
+# ✅ Pre-push checks (test + build)
+# ✅ Analisi commit per release
+# ✅ Calcolo versione semantica
+# ✅ Release automation se necessario
+```
+
+#### 6️⃣ **Post-Merge Cleanup**
+
+```bash
+# Cancella branch locale (se merge completato)
+git branch -d feat/your-feature
+
+# Cancella branch remoto
+git push origin --delete feat/your-feature
+
+# Aggiorna main locale dopo release automation
+git pull origin main
+
+# Verifica tag creati automaticamente
+git tag --sort=-version:refname | head -5
+```
+
+### 🔧 **Comandi Utili per Merge**
+
+#### Verifica Pre-Merge
+
+```bash
+# Vedi cosa cambierà con il merge
+git diff main...HEAD
+
+# Verifica commit che saranno mergiati
+git log main..HEAD --oneline --no-merges
+
+# Test merge simulation (dry-run)
+git merge --no-commit --no-ff feat/your-feature
+git merge --abort  # annulla simulazione
+```
+
+#### Merge Troubleshooting
+
+```bash
+# Se merge fallisce, abort
+git merge --abort
+
+# Se rebase fallisce, abort
+git rebase --abort
+
+# Backup prima di operazioni rischiose
+git tag backup-$(date +%Y%m%d-%H%M%S) HEAD
+
+# Reset a stato precedente (ATTENZIONE: distruttivo)
+git reset --hard HEAD~1
+```
+
+### 🚨 **Merge con Bypass (Solo Emergenze)**
+
+```bash
+# Se ci sono problemi con pre-push hooks
+SKIP_PRE_PUSH_HOOK=true git push origin main
+
+# Push forzato bypassando tutti i controlli
+git push --force --no-verify origin main
+```
+
 ## 🤝 Contributing
 
 1. **Fork** il repository
 2. **Crea branch** per la feature: `git checkout -b feat/amazing-feature`
 3. **Commit** usando conventional commits: `git commit -m 'feat: add amazing feature'`
 4. **Push** al branch: `git push origin feat/amazing-feature`
-5. **Apri Pull Request**
+5. **Segui procedura merge** descritta sopra
+6. **Apri Pull Request** (se necessario)
 
 Il sistema di release automation si occuperà automaticamente di:
 

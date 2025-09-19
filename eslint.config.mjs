@@ -32,6 +32,8 @@ export default tseslint.config(
       'test/jest-e2e.json',
       'test/**/*.ts',
       'test/**/*.js',
+      'docs/learning/labs/**/*.js',
+      'docs/learning/labs/**/*.ts',
     ],
   },
 

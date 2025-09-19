@@ -80,7 +80,7 @@ describe('SwaggerConfig', () => {
         expect.any(Object),
       );
       expect(logger.log).toHaveBeenCalledWith(
-        '📚 Swagger documentation initialized and accessible at /api-docs',
+        'Swagger documentation available',
         'Swagger',
       );
       expect(result).toBeDefined();
@@ -99,7 +99,7 @@ describe('SwaggerConfig', () => {
 
       // Assert
       expect(logger.warn).toHaveBeenCalledWith(
-        'Health endpoint non trovato in Swagger, aggiungiamo manualmente',
+        'Health endpoint non trovato in Swagger',
         'Swagger',
       );
       expect(mockDocument.paths['/health']).toBeDefined();

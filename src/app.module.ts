@@ -4,7 +4,7 @@ import {
   NestModule,
   ValidationPipe,
 } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { TerminusModule } from '@nestjs/terminus';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -14,13 +14,13 @@ import {
   RootWildcardController,
   WildcardController,
 } from './common/controllers/wildcard.controller';
+import { DatabaseModule } from './common/database/database.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CustomLogger } from './common/logger/logger.service';
 import { SecurityMiddleware } from './common/middleware/security.middleware';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation.schema';
 import { HealthController } from './health/health.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
   imports: [
@@ -43,24 +43,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       },
     ]),
 
-    // Database TypeORM
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('database.host'),
-        port: configService.get('database.port'),
-        username: configService.get('database.username'),
-        password: configService.get('database.password'),
-        database: configService.get('database.name'),
-        autoLoadEntities: true,
-        synchronize: configService.get('nodeEnv') === 'development', // Solo in dev!
-        logging: configService.get('nodeEnv') === 'development',
-        retryAttempts: 3,
-        retryDelay: 3000,
-      }),
-      inject: [ConfigService],
-    }),
+    // Database
+    DatabaseModule,
 
     // Health checks
     TerminusModule,
