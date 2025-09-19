@@ -447,7 +447,9 @@ $(git log --oneline --since="$(git describe --tags --abbrev=0 2>/dev/null || ech
       }
 
       const releaseType =
-        this.options.releaseType || analysis.analysis.releaseType;
+        this.options.releaseType === 'auto'
+          ? analysis.analysis.releaseType
+          : this.options.releaseType || analysis.analysis.releaseType;
 
       // Fase 2: Calcolo versione
       const versionInfo = await this.calculateVersion(releaseType);
