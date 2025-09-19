@@ -45,31 +45,67 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
     exit 0
 fi
 
-# Controllo rapido se è un commit semantico che giustifica auto-release
-LAST_COMMIT_MSG=$(git log -1 --pretty=format:"%s")
-if echo "$LAST_COMMIT_MSG" | grep -qE "^(feat|fix|BREAKING CHANGE)"; then
-    echo "🚀 Semantic commit detected: $LAST_COMMIT_MSG"
+# Verifica che il working directory sia pulito
+if [ -n "$(git status --porcelain)" ]; then
+    echo "⚠️  Working directory not clean - commit or stash changes first"
+    echo "📝 Proceeding with push only - no automated release"
+    exit 0
+fi
 
+# Ottieni l'ultimo tag per confrontare i commit
+LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+if [ -z "$LAST_TAG" ]; then
+    # Se non ci sono tag, controlla dall'inizio
+    COMMITS_SINCE_LAST=""
+    echo "📝 No previous tags found - checking all commits"
+else
+    # Controlla i commit dal last tag
+    COMMITS_SINCE_LAST=$(git log ${LAST_TAG}..HEAD --oneline)
+    echo "📝 Checking commits since last tag: $LAST_TAG"
+fi
+
+# Controlla se ci sono commit semantici
+SEMANTIC_COMMITS=$(git log ${LAST_TAG:+$LAST_TAG..}HEAD --pretty=format:"%s" | grep -E "^(feat|fix|BREAKING CHANGE)" || true)
+
+if [ -n "$SEMANTIC_COMMITS" ]; then
+    echo "🚀 Semantic commits detected!"
+    echo "$SEMANTIC_COMMITS" | while IFS= read -r commit; do
+        echo "  - $commit"
+    done
+    
     # Verifica che gli script siano disponibili
     if [ -f "scripts/auto-release.js" ] && [ -f "scripts/release-analyzer.js" ]; then
-        echo "🔄 Triggering automated release..."
+        echo ""
+        echo "🔄 Starting automated release workflow..."
+        echo "   1. Update package.json and package-lock.json"
+        echo "   2. Generate changelog and release notes"
+        echo "   3. Commit release files"
+        echo "   4. Create and push tag"
+        echo ""
 
-        # Esegue il rilascio automatico con output dettagliato
-        echo "🔄 Executing: node scripts/auto-release.js --type=\"auto\""
-        node scripts/auto-release.js --type="auto"
+        # Imposta la variabile per evitare loop infinito nei push successivi
+        export SKIP_PRE_PUSH_HOOK=true
+
+        # Esegue il rilascio automatico con nuovo workflow
+        echo "🔄 Executing: node scripts/auto-release.js --type=\"auto\" --workflow=true"
+        node scripts/auto-release.js --type="auto" --workflow=true
         AUTO_RELEASE_EXIT_CODE=$?
 
+        # Rimuovi la variabile
+        unset SKIP_PRE_PUSH_HOOK
+
         if [ $AUTO_RELEASE_EXIT_CODE -eq 0 ]; then
-            echo "🎉 Automated release completed successfully!"
+            echo "🎉 Automated release workflow completed successfully!"
+            echo "📝 Release files committed and tagged - pushing to remote"
         else
-            echo "⚠️  Automated release failed with exit code: $AUTO_RELEASE_EXIT_CODE"
-            echo "📝 Proceeding with push only - manual release may be needed"
+            echo "⚠️  Automated release workflow failed with exit code: $AUTO_RELEASE_EXIT_CODE"
+            echo "📝 Proceeding with original push only - manual release may be needed"
         fi
     else
         echo "⚠️  Release scripts not found, skipping automated release"
     fi
 else
-    echo "📝 Non-semantic commit - proceeding with push only"
+    echo "📝 No semantic commits found - proceeding with push only"
 fi
 
 echo "🚀 Pre-push hook completed successfully"

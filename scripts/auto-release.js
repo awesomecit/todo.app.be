@@ -610,6 +610,116 @@ $(git log --oneline --since="$(git describe --tags --abbrev=0 2>/dev/null || ech
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * Esegue il workflow di release completo: analizza, aggiorna file, committa, crea tag e pusha
+   * Questo metodo implementa il flusso richiesto dall'utente
+   */
+  async performWorkflowRelease() {
+    try {
+      console.log('🚀 Starting workflow release process...\n');
+
+      // Fase 1: Analisi dei commit semantici
+      console.log('📊 Step 1: Analyzing semantic commits...');
+      const analysis = await this.analyzeCommits();
+
+      if (!analysis.analysis.needsRelease && !this.options.force) {
+        console.log('📝 No semantic commits found - no release needed.');
+        return { success: false, reason: 'No release needed' };
+      }
+
+      const releaseType =
+        this.options.releaseType === 'auto'
+          ? analysis.analysis.releaseType
+          : this.options.releaseType || analysis.analysis.releaseType;
+
+      const versionInfo = this.calculateNewVersion(releaseType);
+
+      console.log(
+        `✅ Release needed: ${releaseType} (${versionInfo.previousVersion} → ${versionInfo.newVersion})`,
+      );
+
+      // Fase 2: Aggiorna package.json e package-lock.json
+      console.log('\n📝 Step 2: Updating package files...');
+      this.updatePackageJson(versionInfo.newVersion);
+
+      // Aggiorna package-lock.json se esiste
+      const packageLockPath = path.join(process.cwd(), 'package-lock.json');
+      if (fs.existsSync(packageLockPath)) {
+        const packageLock = JSON.parse(
+          fs.readFileSync(packageLockPath, 'utf8'),
+        );
+        packageLock.version = versionInfo.newVersion;
+        fs.writeFileSync(
+          packageLockPath,
+          JSON.stringify(packageLock, null, 2) + '\n',
+        );
+        console.log(
+          `✅ Updated package-lock.json to v${versionInfo.newVersion}`,
+        );
+      }
+
+      // Fase 3: Genera changelog e release notes
+      console.log('\n📄 Step 3: Generating documentation...');
+      this.generateChangelog(
+        versionInfo.newVersion,
+        analysis.analysis.summary,
+        analysis.commits,
+      );
+      this.generateReleaseNotes(versionInfo.newVersion, analysis.analysis);
+      console.log(`✅ Generated CHANGELOG.md and RELEASE_NOTES.md`);
+
+      // Fase 4: Committa i file di release
+      console.log('\n💾 Step 4: Committing release files...');
+      this.execCommand(
+        'git add package.json package-lock.json CHANGELOG.md RELEASE_NOTES.md',
+      );
+      this
+        .execCommand(`git commit -m "chore(release): prepare release v${versionInfo.newVersion}
+
+- Update package.json and package-lock.json to v${versionInfo.newVersion}
+- Generate changelog and release notes
+- Prepare for automated release workflow
+
+[skip ci]"`);
+      console.log(`✅ Committed release files for v${versionInfo.newVersion}`);
+
+      // Fase 5: Crea e pusha il tag
+      console.log('\n🏷️ Step 5: Creating and pushing tag...');
+      this.execCommand(
+        `git tag -a v${versionInfo.newVersion} -m "Release v${versionInfo.newVersion}"`,
+      );
+      console.log(`✅ Created tag v${versionInfo.newVersion}`);
+
+      this.execCommand(`git push origin v${versionInfo.newVersion}`);
+      console.log(`✅ Pushed tag v${versionInfo.newVersion} to remote`);
+
+      console.log(
+        `\n🎉 Workflow release v${versionInfo.newVersion} completed successfully!`,
+      );
+      console.log(`📊 Release Summary:`);
+      console.log(`   • Type: ${releaseType}`);
+      console.log(
+        `   • Version: ${versionInfo.previousVersion} → ${versionInfo.newVersion}`,
+      );
+      console.log(`   • Commits: ${analysis.analysis.summary.total}`);
+      console.log(
+        `   • Files: package.json, package-lock.json, CHANGELOG.md, RELEASE_NOTES.md`,
+      );
+      console.log(`   • Tag: v${versionInfo.newVersion} (pushed to remote)`);
+
+      return {
+        success: true,
+        version: versionInfo.newVersion,
+        type: releaseType,
+        summary: analysis.analysis.summary,
+        workflow: true,
+      };
+    } catch (error) {
+      console.error(`\n❌ Workflow release failed: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 // Esecuzione script se chiamato direttamente
@@ -622,6 +732,7 @@ if (require.main === module) {
     force: args.includes('--force'),
     skipTests: args.includes('--skip-tests'),
     skipBuild: args.includes('--skip-build'),
+    workflow: args.includes('--workflow=true'),
     releaseType: args.find(arg => arg.startsWith('--type='))?.split('=')[1],
   };
 
@@ -630,13 +741,18 @@ if (require.main === module) {
   console.log(`   • Force: ${options.force ? '✅ Yes' : '❌ No'}`);
   console.log(`   • Skip Tests: ${options.skipTests ? '✅ Yes' : '❌ No'}`);
   console.log(`   • Skip Build: ${options.skipBuild ? '✅ Yes' : '❌ No'}`);
+  console.log(`   • Workflow Mode: ${options.workflow ? '✅ Yes' : '❌ No'}`);
   console.log(`   • Release Type: ${options.releaseType || 'auto-detect'}`);
   console.log('');
 
   const autoRelease = new AutoRelease(options);
 
-  autoRelease
-    .performRelease()
+  // Usa il workflow se richiesto
+  const releaseMethod = options.workflow
+    ? autoRelease.performWorkflowRelease()
+    : autoRelease.performRelease();
+
+  releaseMethod
     .then(result => {
       if (result.success) {
         console.log('\n✨ Automated release completed successfully!');
