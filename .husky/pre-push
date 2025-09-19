@@ -28,15 +28,7 @@ fi
 
 echo "🚀 Running pre-push checks for production readiness..."
 
-# Step 1: Unit tests (without strict coverage enforcement in development)
-echo "🧪 Running unit tests..."
-npm run test
-
-# Step 2: Database integration tests (with environment protection)
-echo "🔗 Running database integration tests with safety checks..."
-./scripts/test-env-guard.sh integration
-
-# Step 3: Build verification
+# Quick build verification only (tests will run in CI/CD)
 echo "🏗️ Verifying build..."
 npm run build
 
@@ -62,14 +54,16 @@ if echo "$LAST_COMMIT_MSG" | grep -qE "^(feat|fix|BREAKING CHANGE)"; then
     if [ -f "scripts/auto-release.js" ] && [ -f "scripts/release-analyzer.js" ]; then
         echo "🔄 Triggering automated release..."
 
-        # Esegue il rilascio automatico
-        node scripts/auto-release.js --type="auto" 2>/dev/null
+        # Esegue il rilascio automatico con output dettagliato
+        echo "🔄 Executing: node scripts/auto-release.js --type=\"auto\""
+        node scripts/auto-release.js --type="auto"
         AUTO_RELEASE_EXIT_CODE=$?
 
         if [ $AUTO_RELEASE_EXIT_CODE -eq 0 ]; then
             echo "🎉 Automated release completed successfully!"
         else
-            echo "⚠️  Automated release failed, proceeding with push only"
+            echo "⚠️  Automated release failed with exit code: $AUTO_RELEASE_EXIT_CODE"
+            echo "📝 Proceeding with push only - manual release may be needed"
         fi
     else
         echo "⚠️  Release scripts not found, skipping automated release"
