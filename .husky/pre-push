@@ -6,6 +6,26 @@ if [ "$SKIP_PRE_PUSH_HOOK" = "true" ]; then
     exit 0
 fi
 
+# Controllo se si tratta di una cancellazione di branch remoto
+# Il comando `git push origin --delete branch_name` non dovrebbe lanciare hook
+read local_ref local_sha remote_ref remote_sha
+
+# Se si tratta di una cancellazione di branch (local_sha è tutto zeri), salta i controlli
+if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+    echo "🗑️  Branch deletion detected - skipping pre-push checks"
+    exit 0
+fi
+
+# Se si tratta di creazione di branch (remote_sha è tutto zeri), esegui i controlli
+if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    echo "🆕 New branch creation detected - running pre-push checks"
+elif [ "$local_sha" != "$remote_sha" ]; then
+    echo "🔄 Branch update detected - running pre-push checks"
+else
+    echo "✅ No changes detected - skipping pre-push checks"
+    exit 0
+fi
+
 echo "🚀 Running pre-push checks for production readiness..."
 
 # Step 1: Unit tests (without strict coverage enforcement in development)
