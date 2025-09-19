@@ -8,12 +8,15 @@ fi
 
 echo "🚀 Running pre-push checks for production readiness..."
 
-# Step 1: Full test suite with coverage enforcement
-# TEMPORARILY DISABLED: Full test suite with coverage validation
-# echo "🧪 Running full test suite with coverage validation..."
-# npm run test:coverage:check
+# Step 1: Unit tests (without strict coverage enforcement in development)
+echo "🧪 Running unit tests..."
+npm run test
 
-# Step 2: Build verification
+# Step 2: Database integration tests (with environment protection)
+echo "🔗 Running database integration tests with safety checks..."
+./scripts/test-env-guard.sh integration
+
+# Step 3: Build verification
 echo "🏗️ Verifying build..."
 npm run build
 

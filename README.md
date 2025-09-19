@@ -56,10 +56,30 @@ Questo progetto utilizza **npm** con `package-lock.json` per garantire riproduci
 
 ### Testing
 
-- `npm test` - Esegue i test
-- `npm run test:watch` - Test in modalità watch
-- `npm run test:coverage` - Test con coverage report
+- `npm test` - Esegue i test unitari
+- `npm run test:watch` - Test unitari in modalità watch
+- `npm run test:coverage` - Test unitari con coverage report
 - `npm run test:tdd` - Modalità TDD interattiva
+
+### Testing Avanzato (NUOVO!)
+
+- `npm run test:integration` - Test di integrazione database
+- `npm run test:integration:watch` - Test integrazione in modalità watch
+- `npm run test:integration:cov` - Test integrazione con coverage
+- `npm run test:e2e` - Test end-to-end completi
+- `npm run test:e2e:watch` - Test E2E in modalità watch
+
+### Test Database
+
+I test di integrazione e E2E richiedono PostgreSQL attivo:
+
+```bash
+# Avvio database per test
+docker compose up -d todo-database
+
+# Verifica stato
+docker compose ps
+```
 
 ### Qualità Codice
 
