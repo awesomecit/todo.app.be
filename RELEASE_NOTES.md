@@ -1,3 +1,7 @@
+## 1.5.0 (2025-09-19)
+
+- feat(core): standardize error messages to UPPERCASE_ENGLISH_WITH_UNDERSCORES format c715d63
+
 ## 1.4.0 (2025-09-19)
 
 - feat: implement generic service architecture with TypeORM integration 520d002

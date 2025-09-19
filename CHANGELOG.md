@@ -1,3 +1,16 @@
+## 1.5.0 (2025-09-19)
+
+- feat(core): standardize error messages to UPPERCASE_ENGLISH_WITH_UNDERSCORES format c715d63
+
+## 1.4.0 (2025-09-19)
+
+- chore(release): prepare release v1.4.0 726afb6
+- feat: implement generic service architecture with TypeORM integration 520d002
+
+### BREAKING CHANGE
+
+- Introduces new generic architecture pattern for scalable entity management
+
 ## 1.4.0 (2025-09-19)
 
 - feat: implement generic service architecture with TypeORM integration 520d002
