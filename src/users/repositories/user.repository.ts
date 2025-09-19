@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, IsNull } from 'typeorm';
+import { ERROR_MESSAGES } from '../../common/constants/error-messages.constants';
 import { BaseRepository } from '../../common/repositories/base.repository';
 import { User, UserRole } from '../entities/user.entity';
 
@@ -34,7 +35,7 @@ export class UserRepository extends BaseRepository<User> {
       return user;
     } catch (error) {
       this.logger.error(`Error finding user by email ${email}:`, error);
-      throw error;
+      throw new Error(ERROR_MESSAGES.USER_NOT_FOUND);
     }
   }
 
@@ -56,7 +57,7 @@ export class UserRepository extends BaseRepository<User> {
       return users;
     } catch (error) {
       this.logger.error('Error finding active users:', error);
-      throw error;
+      throw new Error(ERROR_MESSAGES.NOT_FOUND);
     }
   }
 
@@ -78,7 +79,7 @@ export class UserRepository extends BaseRepository<User> {
       return users;
     } catch (error) {
       this.logger.error(`Error finding users by role ${role}:`, error);
-      throw error;
+      throw new Error(ERROR_MESSAGES.NOT_FOUND);
     }
   }
 
@@ -98,7 +99,7 @@ export class UserRepository extends BaseRepository<User> {
       return exists;
     } catch (error) {
       this.logger.error(`Error checking email existence ${email}:`, error);
-      throw error;
+      throw new Error(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -122,7 +123,7 @@ export class UserRepository extends BaseRepository<User> {
       this.logger.debug(`User ${id} soft deleted successfully`);
     } catch (error) {
       this.logger.error(`Error soft deleting user ${id}:`, error);
-      throw error;
+      throw new Error(ERROR_MESSAGES.SOFT_DELETE_FAILED);
     }
   }
 }

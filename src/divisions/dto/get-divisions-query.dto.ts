@@ -10,6 +10,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { ERROR_MESSAGES } from '../../common/constants/error-messages.constants';
 
 /**
  * DTO for querying divisions with pagination and filtering
@@ -23,8 +24,8 @@ export class GetDivisionsQueryDto {
   })
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
-  @Min(1)
+  @IsNumber({}, { message: ERROR_MESSAGES.IS_NUMBER })
+  @Min(1, { message: ERROR_MESSAGES.MIN_VALUE })
   readonly page?: number = 1;
 
   @ApiProperty({
@@ -35,9 +36,9 @@ export class GetDivisionsQueryDto {
   })
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  @Max(100)
+  @IsNumber({}, { message: ERROR_MESSAGES.IS_NUMBER })
+  @Min(1, { message: ERROR_MESSAGES.MIN_VALUE })
+  @Max(100, { message: ERROR_MESSAGES.MAX_VALUE })
   readonly limit?: number = 10;
 
   @ApiProperty({
@@ -47,8 +48,10 @@ export class GetDivisionsQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
-  @IsIn(['name', 'createdAt', 'level', 'updatedAt'])
+  @IsString({ message: ERROR_MESSAGES.IS_STRING })
+  @IsIn(['name', 'createdAt', 'level', 'updatedAt'], {
+    message: ERROR_MESSAGES.IS_ENUM,
+  })
   readonly sortBy?: string = 'name';
 
   @ApiProperty({
@@ -58,8 +61,8 @@ export class GetDivisionsQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
-  @IsIn(['ASC', 'DESC'])
+  @IsString({ message: ERROR_MESSAGES.IS_STRING })
+  @IsIn(['ASC', 'DESC'], { message: ERROR_MESSAGES.IS_ENUM })
   readonly sortOrder?: 'ASC' | 'DESC' = 'ASC';
 
   @ApiProperty({
@@ -68,7 +71,7 @@ export class GetDivisionsQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
+  @IsString({ message: ERROR_MESSAGES.IS_STRING })
   readonly search?: string;
 
   @ApiProperty({
@@ -77,7 +80,7 @@ export class GetDivisionsQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsBoolean()
+  @IsBoolean({ message: ERROR_MESSAGES.IS_BOOLEAN })
   @Transform(({ value }) => {
     if (value === 'true') return true;
     if (value === 'false') return false;
@@ -92,8 +95,8 @@ export class GetDivisionsQueryDto {
   })
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
-  @Min(1)
+  @IsNumber({}, { message: ERROR_MESSAGES.IS_NUMBER })
+  @Min(1, { message: ERROR_MESSAGES.MIN_VALUE })
   readonly level?: number;
 
   @ApiProperty({
@@ -102,6 +105,6 @@ export class GetDivisionsQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsUUID()
+  @IsUUID(4, { message: ERROR_MESSAGES.IS_UUID })
   readonly parentId?: string;
 }

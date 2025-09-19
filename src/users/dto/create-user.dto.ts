@@ -9,6 +9,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { ERROR_MESSAGES } from '../../common/constants/error-messages.constants';
 
 export enum UserRole {
   USER = 'user',
@@ -23,10 +24,10 @@ export class CreateUserDto {
     minLength: 2,
     maxLength: 50,
   })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(2)
-  @MaxLength(50)
+  @IsString({ message: ERROR_MESSAGES.IS_STRING })
+  @IsNotEmpty({ message: ERROR_MESSAGES.IS_NOT_EMPTY })
+  @MinLength(2, { message: ERROR_MESSAGES.MIN_LENGTH })
+  @MaxLength(50, { message: ERROR_MESSAGES.MAX_LENGTH })
   @Transform(({ value }) => value?.trim())
   readonly firstName: string;
 
@@ -36,10 +37,10 @@ export class CreateUserDto {
     minLength: 2,
     maxLength: 50,
   })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(2)
-  @MaxLength(50)
+  @IsString({ message: ERROR_MESSAGES.IS_STRING })
+  @IsNotEmpty({ message: ERROR_MESSAGES.IS_NOT_EMPTY })
+  @MinLength(2, { message: ERROR_MESSAGES.MIN_LENGTH })
+  @MaxLength(50, { message: ERROR_MESSAGES.MAX_LENGTH })
   @Transform(({ value }) => value?.trim())
   readonly lastName: string;
 
@@ -47,8 +48,8 @@ export class CreateUserDto {
     description: 'User email address',
     example: 'mario.rossi@example.com',
   })
-  @IsEmail()
-  @IsNotEmpty()
+  @IsEmail({}, { message: ERROR_MESSAGES.IS_EMAIL })
+  @IsNotEmpty({ message: ERROR_MESSAGES.IS_NOT_EMPTY })
   @Transform(({ value }) => value?.toLowerCase()?.trim())
   readonly email: string;
 
@@ -58,10 +59,10 @@ export class CreateUserDto {
     minLength: 8,
     maxLength: 100,
   })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(8)
-  @MaxLength(100)
+  @IsString({ message: ERROR_MESSAGES.IS_STRING })
+  @IsNotEmpty({ message: ERROR_MESSAGES.IS_NOT_EMPTY })
+  @MinLength(8, { message: ERROR_MESSAGES.MIN_LENGTH })
+  @MaxLength(100, { message: ERROR_MESSAGES.MAX_LENGTH })
   readonly password: string;
 
   @ApiPropertyOptional({
@@ -71,6 +72,6 @@ export class CreateUserDto {
     example: UserRole.USER,
   })
   @IsOptional()
-  @IsEnum(UserRole)
+  @IsEnum(UserRole, { message: ERROR_MESSAGES.IS_ENUM })
   readonly role?: UserRole = UserRole.USER;
 }

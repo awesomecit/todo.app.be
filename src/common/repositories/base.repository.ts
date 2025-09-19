@@ -11,6 +11,7 @@ import {
   FindOptionsWhere,
   Repository,
 } from 'typeorm';
+import { ERROR_MESSAGES } from '../constants/error-messages.constants';
 import { BaseEntity } from '../entities/base.entity';
 import { GenericRepository } from './generic.repository';
 
@@ -72,9 +73,9 @@ export abstract class BaseRepository<T extends BaseEntity>
 
       return savedEntity;
     } catch (error) {
-      const errorMessage = `Failed to create entity: ${error.message}`;
+      const errorMessage = `${ERROR_MESSAGES.CREATE_FAILED}: ${error.message}`;
       this.logger.error(errorMessage, error.stack, context);
-      throw new InternalServerErrorException(errorMessage);
+      throw new InternalServerErrorException(ERROR_MESSAGES.CREATE_FAILED);
     }
   }
 
@@ -104,7 +105,7 @@ export abstract class BaseRepository<T extends BaseEntity>
     } catch (error) {
       const errorMessage = `Failed to find entity by id ${id}: ${error.message}`;
       this.logger.error(errorMessage, error.stack, context);
-      throw new InternalServerErrorException(errorMessage);
+      throw new InternalServerErrorException(ERROR_MESSAGES.NOT_FOUND);
     }
   }
 
@@ -129,7 +130,7 @@ export abstract class BaseRepository<T extends BaseEntity>
       // First check if entity exists
       const existingEntity = await this.findById(id);
       if (!existingEntity) {
-        throw new NotFoundException(`Entity with id ${id} not found`);
+        throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
       }
 
       // Update the entity - TypeORM will handle updatedAt via BaseEntity hooks
@@ -138,9 +139,7 @@ export abstract class BaseRepository<T extends BaseEntity>
       // Return the updated entity
       const updatedEntity = await this.findById(id);
       if (!updatedEntity) {
-        throw new InternalServerErrorException(
-          `Failed to retrieve updated entity with id ${id}`,
-        );
+        throw new InternalServerErrorException(ERROR_MESSAGES.UPDATE_FAILED);
       }
 
       this.logger.log(`Successfully updated entity with id: ${id}`, context);
@@ -151,9 +150,9 @@ export abstract class BaseRepository<T extends BaseEntity>
         throw error;
       }
 
-      const errorMessage = `Failed to update entity ${id}: ${error.message}`;
+      const errorMessage = `${ERROR_MESSAGES.UPDATE_FAILED}: ${error.message}`;
       this.logger.error(errorMessage, error.stack, context);
-      throw new InternalServerErrorException(errorMessage);
+      throw new InternalServerErrorException(ERROR_MESSAGES.UPDATE_FAILED);
     }
   }
 
@@ -174,7 +173,7 @@ export abstract class BaseRepository<T extends BaseEntity>
       // First check if entity exists
       const existingEntity = await this.findById(id);
       if (!existingEntity) {
-        throw new NotFoundException(`Entity with id ${id} not found`);
+        throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
       }
 
       // Remove the entity
@@ -186,9 +185,9 @@ export abstract class BaseRepository<T extends BaseEntity>
         throw error;
       }
 
-      const errorMessage = `Failed to remove entity ${id}: ${error.message}`;
+      const errorMessage = `${ERROR_MESSAGES.DELETE_FAILED}: ${error.message}`;
       this.logger.error(errorMessage, error.stack, context);
-      throw new InternalServerErrorException(errorMessage);
+      throw new InternalServerErrorException(ERROR_MESSAGES.DELETE_FAILED);
     }
   }
 
@@ -217,7 +216,7 @@ export abstract class BaseRepository<T extends BaseEntity>
     } catch (error) {
       const errorMessage = `Failed to find entities: ${error.message}`;
       this.logger.error(errorMessage, error.stack, context);
-      throw new InternalServerErrorException(errorMessage);
+      throw new InternalServerErrorException(ERROR_MESSAGES.NOT_FOUND);
     }
   }
 
@@ -247,7 +246,9 @@ export abstract class BaseRepository<T extends BaseEntity>
     } catch (error: any) {
       const errorMessage = `Failed to count entities: ${error.message}`;
       this.logger.error(errorMessage, error.stack, context);
-      throw new InternalServerErrorException(errorMessage);
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 

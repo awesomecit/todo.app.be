@@ -1,13 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsOptional, IsString, IsUUID } from 'class-validator';
+import { ERROR_MESSAGES } from '../../common/constants/error-messages.constants';
 
 /**
  * DTO for creating a new division
  */
 export class CreateDivisionDto {
   @ApiProperty({ description: 'Division name', example: 'Marketing Division' })
-  @IsString()
+  @IsString({ message: ERROR_MESSAGES.IS_STRING })
   readonly name: string;
 
   @ApiProperty({
@@ -16,7 +17,7 @@ export class CreateDivisionDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
+  @IsString({ message: ERROR_MESSAGES.IS_STRING })
   readonly description?: string;
 
   @ApiProperty({
@@ -25,7 +26,7 @@ export class CreateDivisionDto {
     default: true,
   })
   @IsOptional()
-  @IsBoolean()
+  @IsBoolean({ message: ERROR_MESSAGES.IS_BOOLEAN })
   @Transform(({ value }) => {
     if (value === 'true') return true;
     if (value === 'false') return false;
@@ -39,6 +40,6 @@ export class CreateDivisionDto {
     required: false,
   })
   @IsOptional()
-  @IsUUID()
+  @IsUUID(4, { message: ERROR_MESSAGES.IS_UUID })
   readonly parentId?: string;
 }

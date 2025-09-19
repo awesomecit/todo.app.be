@@ -47,6 +47,8 @@ This is a backend application built with NestJS. The codebase is organized for m
   - **Controller validation tests:** Always include validation tests for all controller endpoints
 - **Error Handling:**
   - **Error messages format:** Use `ERROR_MESSAGE` constants (e.g., `USER_NOT_FOUND`, `INVALID_CREDENTIALS`)
+  - **Uppercase format:** All error messages and validation messages must be in UPPERCASE_ENGLISH_WITH_UNDERSCORES format
+  - **Consistent messaging:** Use centralized constants for all error and validation messages throughout the application
   - **English only:** All variables, messages, and code comments must be in English
 - **Testing Strategy:**
   - **TEST-FIRST MANDATORY:** Always implement tests BEFORE writing any production code. No exceptions.

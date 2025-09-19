@@ -250,7 +250,7 @@ describe('UserRepository', () => {
 
       // When & Then
       await expect(userRepository.remove(userId)).rejects.toThrow(
-        'Update failed',
+        'FAILED_TO_SOFT_DELETE_RECORD',
       );
     });
   });

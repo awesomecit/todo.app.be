@@ -22,7 +22,7 @@ Molti sviluppatori sottovalutano l'importanza di padroneggiare completamente le 
 • Proxy e Reflect API
 • Optional chaining e nullish coalescing
 
-## Modulo 2: Introduzione a TypeScript - I Primi Passi
+## Modulo 2: Introduzione a TypeScript - I Primi Passi [done][all resume]
 
 In questo modulo faremo il grande salto dalla programmazione dinamica a quella tipizzata. TypeScript non è semplicemente "JavaScript con i tipi" - è un nuovo modo di pensare al codice che ti aiuterà a scrivere software più robusto, manutenibile e autodescrittivo. Inizieremo dolcemente con i concetti base del sistema di tipi, imparando come configurare un ambiente di sviluppo TypeScript e comprendere il processo di compilazione. Questo approccio graduale ti permetterà di apprezzare i vantaggi della tipizzazione statica senza sentirti sopraffatto dalla complessità.
 
@@ -39,7 +39,7 @@ In questo modulo faremo il grande salto dalla programmazione dinamica a quella t
 • Integrazione con editor e tooling
 • Migrazione graduale da JavaScript
 
-## Modulo 3: Sistema di Tipi Avanzato
+## Modulo 3: Sistema di Tipi Avanzato [done][all resume]
 
 Qui entriamo nel cuore pulsante di TypeScript, esplorando le caratteristiche che separano veramente i developer esperti da quelli principianti. Il sistema di tipi avanzato di TypeScript è uno strumento incredibilmente potente che, una volta padroneggiato, trasformerà completamente il tuo approccio alla programmazione. Imparerai a creare tipi flessibili e riutilizzabili, a manipolare tipi a compile-time e a sfruttare l'inferenza di tipo per scrivere codice più espressivo. Questo modulo richiederà pratica e pazienza, ma i risultati ti ripagheranno ampiamente in termini di produttività e qualità del codice.
 
