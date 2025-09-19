@@ -1,3 +1,11 @@
+## 1.4.0 (2025-09-19)
+
+- feat: implement generic service architecture with TypeORM integration 520d002
+
+### BREAKING CHANGE
+
+- Introduces new generic architecture pattern for scalable entity management
+
 ## 1.3.0 (2025-09-19)
 
 - chore: remove test file and install missing conventional-changelog-cli 993b658
