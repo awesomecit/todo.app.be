@@ -405,10 +405,26 @@ class AutoRelease {
     console.log('📖 Generating changelog...');
 
     try {
-      this.execCommand('npm run release:notes');
+      this.execCommand('npm run release:changelog');
       console.log('   ✅ Changelog generated');
     } catch (error) {
       console.warn(`   ⚠️  Changelog generation failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Genera le release notes
+   * @param {string} version La versione per le release notes
+   * @param {Object} analysis L'analisi dei commit
+   */
+  generateReleaseNotes(version, analysis) {
+    console.log('📋 Generating release notes...');
+
+    try {
+      this.execCommand('npm run release:notes');
+      console.log('   ✅ Release notes generated');
+    } catch (error) {
+      console.warn(`   ⚠️  Release notes generation failed: ${error.message}`);
     }
   }
 
@@ -633,7 +649,7 @@ $(git log --oneline --since="$(git describe --tags --abbrev=0 2>/dev/null || ech
           ? analysis.analysis.releaseType
           : this.options.releaseType || analysis.analysis.releaseType;
 
-      const versionInfo = this.calculateNewVersion(releaseType);
+      const versionInfo = await this.calculateVersion(releaseType);
 
       console.log(
         `✅ Release needed: ${releaseType} (${versionInfo.previousVersion} → ${versionInfo.newVersion})`,
@@ -641,7 +657,7 @@ $(git log --oneline --since="$(git describe --tags --abbrev=0 2>/dev/null || ech
 
       // Fase 2: Aggiorna package.json e package-lock.json
       console.log('\n📝 Step 2: Updating package files...');
-      this.updatePackageJson(versionInfo.newVersion);
+      this.updatePackageVersion(versionInfo.newVersion);
 
       // Aggiorna package-lock.json se esiste
       const packageLockPath = path.join(process.cwd(), 'package-lock.json');
