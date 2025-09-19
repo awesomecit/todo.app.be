@@ -1,3 +1,15 @@
+## 1.3.0 (2025-09-19)
+
+- chore: remove test file and install missing conventional-changelog-cli 993b658
+- feat: add more test content for release automation ca43c94
+- feat: test automatic release system bbf1a2a
+
+## 1.2.0 (2025-09-19)
+
+- chore(release): prepare release v1.2.0 354e385
+- feat(release): implement complete workflow system dbd906f
+- fix(core): optimize pre-push hook and improve release automation cd94773
+
 ## 1.2.0 (2025-09-19)
 
 - feat(release): implement complete workflow system ([dbd906f](https://github-privato/awesomecit/todo/commit/dbd906f))

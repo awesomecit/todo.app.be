@@ -1,3 +1,9 @@
+## 1.3.0 (2025-09-19)
+
+- chore: remove test file and install missing conventional-changelog-cli 993b658
+- feat: add more test content for release automation ca43c94
+- feat: test automatic release system bbf1a2a
+
 # Release Notes v0.1.0
 
 ## 📋 Summary
