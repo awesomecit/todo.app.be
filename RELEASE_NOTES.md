@@ -1,3 +1,7 @@
+## 1.6.0 (2025-09-19)
+
+- feat(core): implement strong typing across codebase 4fa0839
+
 ## 1.5.0 (2025-09-19)
 
 - feat(core): standardize error messages to UPPERCASE_ENGLISH_WITH_UNDERSCORES format c715d63
