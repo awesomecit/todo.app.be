@@ -35,16 +35,17 @@ class AutoRelease {
    * Esegue un comando con gestione degli errori
    * @param {string} command Il comando da eseguire
    * @param {boolean} silent Se true, non mostra l'output
+   * @param {boolean} alwaysExecute Se true, esegue anche in dry-run mode (per comandi di sola lettura)
    * @returns {string} L'output del comando
    */
-  execCommand(command, silent = false) {
+  execCommand(command, silent = false, alwaysExecute = false) {
     try {
       const options = {
         encoding: 'utf8',
         stdio: silent ? ['pipe', 'pipe', 'ignore'] : 'inherit',
       };
 
-      if (this.options.dryRun) {
+      if (this.options.dryRun && !alwaysExecute) {
         console.log(`🧪 DRY RUN: Would execute: ${command}`);
         return '';
       }
@@ -52,6 +53,95 @@ class AutoRelease {
       return execSync(command, options);
     } catch (error) {
       throw new Error(`Command failed: ${command}\nError: ${error.message}`);
+    }
+  }
+
+  /**
+   * Verifica la coerenza delle versioni tra package.json, package-lock.json e Git tags
+   * @returns {Object} Risultato della verifica
+   */
+  checkVersionConsistency() {
+    console.log('🔍 Checking version consistency...');
+
+    try {
+      // Legge versione da package.json
+      const packageJson = JSON.parse(
+        fs.readFileSync(this.packageJsonPath, 'utf8'),
+      );
+      const packageVersion = packageJson.version;
+
+      // Legge versione da package-lock.json
+      const packageLockPath = path.join(process.cwd(), 'package-lock.json');
+      let lockVersion = null;
+      if (fs.existsSync(packageLockPath)) {
+        const packageLock = JSON.parse(
+          fs.readFileSync(packageLockPath, 'utf8'),
+        );
+        lockVersion = packageLock.version;
+      }
+
+      // Legge ultimo tag Git dal remote
+      let latestTag = null;
+      try {
+        const tagOutput = this.execCommand(
+          'git describe --tags --abbrev=0 origin/main 2>/dev/null || echo ""',
+          true,
+          true,
+        );
+        latestTag = tagOutput.trim();
+        if (latestTag.startsWith('v')) {
+          latestTag = latestTag.substring(1); // Rimuove 'v' prefix
+        }
+      } catch (error) {
+        // Nessun tag trovato
+      }
+
+      console.log(`📦 Version Analysis:`);
+      console.log(`   • package.json: ${packageVersion}`);
+      console.log(`   • package-lock.json: ${lockVersion || 'not found'}`);
+      console.log(`   • Latest Git tag: ${latestTag || 'no tags found'}`);
+
+      // Controlli di coerenza
+      const issues = [];
+
+      if (lockVersion && packageVersion !== lockVersion) {
+        issues.push(
+          `Version mismatch: package.json (${packageVersion}) vs package-lock.json (${lockVersion})`,
+        );
+      }
+
+      if (latestTag && packageVersion !== latestTag) {
+        issues.push(
+          `Version mismatch: package.json (${packageVersion}) vs latest Git tag (${latestTag})`,
+        );
+      }
+
+      if (issues.length > 0) {
+        console.log('❌ Version consistency issues found:');
+        issues.forEach(issue => console.log(`   • ${issue}`));
+        return {
+          consistent: false,
+          issues,
+          versions: {
+            package: packageVersion,
+            lock: lockVersion,
+            tag: latestTag,
+          },
+        };
+      }
+
+      console.log('✅ All versions are consistent');
+      return {
+        consistent: true,
+        issues: [],
+        versions: {
+          package: packageVersion,
+          lock: lockVersion,
+          tag: latestTag,
+        },
+      };
+    } catch (error) {
+      throw new Error(`Failed to check version consistency: ${error.message}`);
     }
   }
 
@@ -159,19 +249,12 @@ class AutoRelease {
         console.log(
           '🧪 DRY RUN: Would analyze commits with release-analyzer.js',
         );
-        // Ritorna un risultato simulato per dry-run
-        return {
-          analysis: {
-            needsRelease: true,
-            releaseType: 'minor',
-            summary: { total: 5, major: 0, minor: 1, patch: 1, none: 3 },
-          },
-        };
       }
 
       const analysisOutput = this.execCommand(
         'node scripts/release-analyzer.js --json',
         true,
+        true, // alwaysExecute = true per comandi di sola lettura
       );
       const analysis = JSON.parse(analysisOutput);
 
@@ -199,23 +282,26 @@ class AutoRelease {
     try {
       if (this.options.dryRun) {
         console.log(`🧪 DRY RUN: Would calculate version for ${releaseType}`);
-        // Ritorna un risultato simulato per dry-run
-        return {
-          previousVersion: '0.1.0',
-          newVersion:
-            releaseType === 'major'
-              ? '1.0.0'
-              : releaseType === 'minor'
-                ? '0.2.0'
-                : '0.1.1',
-          bumped: true,
-          releaseType,
-        };
+        // Anche in dry-run, calcoliamo la versione reale per simulazione accurata
+        const versionOutput = this.execCommand(
+          `node scripts/version-calculator.js ${releaseType} --json`,
+          true,
+          true, // alwaysExecute = true per comandi di sola lettura
+        );
+        const versionInfo = JSON.parse(versionOutput);
+
+        console.log(`📦 Version calculation (DRY RUN):`);
+        console.log(`   • Current: ${versionInfo.previousVersion}`);
+        console.log(`   • New: ${versionInfo.newVersion}`);
+        console.log(`   • Bumped: ${versionInfo.bumped ? '✅ Yes' : '❌ No'}`);
+
+        return versionInfo;
       }
 
       const versionOutput = this.execCommand(
         `node scripts/version-calculator.js ${releaseType} --json`,
         true,
+        true, // alwaysExecute = true per comandi di sola lettura
       );
       const versionInfo = JSON.parse(versionOutput);
 
@@ -431,6 +517,17 @@ $(git log --oneline --since="$(git describe --tags --abbrev=0 2>/dev/null || ech
         return {
           success: false,
           reason: 'Not synchronized with remote - pull latest changes first',
+        };
+      }
+
+      // Controllo coerenza versioni
+      const versionCheck = this.checkVersionConsistency();
+      if (!versionCheck.consistent && !this.options.force) {
+        return {
+          success: false,
+          reason:
+            'Version inconsistency detected - fix version conflicts first',
+          details: versionCheck.issues,
         };
       }
 
