@@ -16,7 +16,7 @@ import { CustomLogger } from './common/logger/logger.service';
 import { setupSwagger } from './swagger/swagger.config';
 
 // Funzione per caricare il file di environment
-function loadEnvironment(envType?: string) {
+function loadEnvironment(envType?: string): void {
   const envFilePath = path.join(__dirname, '..', `.env.${envType || 'test'}`);
   dotenv.config({ path: envFilePath });
   console.log(`Environment loaded from ${envFilePath}`);
@@ -28,7 +28,7 @@ loadEnvironment('test');
 /**
  * Configura CORS per l'applicazione
  */
-function setupCors(app: INestApplication, logger: CustomLogger) {
+function setupCors(app: INestApplication, logger: CustomLogger): void {
   const corsOrigin = process.env.CORS_ORIGIN?.split(',') || [
     'http://localhost:3000',
   ];
@@ -45,7 +45,10 @@ function setupCors(app: INestApplication, logger: CustomLogger) {
 /**
  * Configura il prefisso globale per le API e le esclusioni
  */
-function setupGlobalPrefix(app: INestApplication, logger: CustomLogger) {
+function setupGlobalPrefix(
+  app: INestApplication,
+  logger: CustomLogger,
+): string {
   const globalPrefix = 'api/v1';
   app.setGlobalPrefix(globalPrefix, {
     exclude: [
@@ -73,7 +76,7 @@ function setupGlobalPrefix(app: INestApplication, logger: CustomLogger) {
 /**
  * Configura i pipe globali
  */
-function setupGlobalPipes(app: INestApplication, logger: CustomLogger) {
+function setupGlobalPipes(app: INestApplication, logger: CustomLogger): void {
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true, // Trasforma automaticamente i tipi
@@ -93,7 +96,7 @@ function setupGlobalPipes(app: INestApplication, logger: CustomLogger) {
 function setupGlobalFiltersAndInterceptors(
   app: INestApplication,
   logger: CustomLogger,
-) {
+): void {
   // Global exception filter
   app.useGlobalFilters(new AllExceptionsFilter(logger));
   logger.log('🛡️  Global exception filter enabled', 'Bootstrap');
@@ -116,7 +119,7 @@ function logApplicationStartInfo(
   logger: CustomLogger,
   port: number,
   globalPrefix: string,
-) {
+): void {
   logger.log(`🎉 Application successfully started!`, 'Bootstrap');
   logger.log(
     `🌍 Server running on: http://localhost:${port}/${globalPrefix}`,
@@ -147,7 +150,7 @@ function logApplicationStartInfo(
   );
 }
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   // Creiamo l'app con il logger di default per il bootstrap, poi lo sostituiremo
   const app = await NestFactory.create(AppModule);
 

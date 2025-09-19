@@ -7,6 +7,7 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import {
   DataSource,
+  DeepPartial,
   EntityTarget,
   FindOptionsWhere,
   Repository,
@@ -61,7 +62,7 @@ export abstract class BaseRepository<T extends BaseEntity>
       );
 
       // Create entity instance - TypeORM will handle id, createdAt, updatedAt via BaseEntity hooks
-      const entity = this.repository.create(entityData as any);
+      const entity = this.repository.create(entityData as DeepPartial<T>);
 
       // Save to database - save() with single entity returns the saved entity
       const savedEntity = (await this.repository.save(entity)) as unknown as T;
@@ -72,9 +73,13 @@ export abstract class BaseRepository<T extends BaseEntity>
       );
 
       return savedEntity;
-    } catch (error) {
-      const errorMessage = `${ERROR_MESSAGES.CREATE_FAILED}: ${error.message}`;
-      this.logger.error(errorMessage, error.stack, context);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? `${ERROR_MESSAGES.CREATE_FAILED}: ${error.message}`
+          : ERROR_MESSAGES.CREATE_FAILED;
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(errorMessage, errorStack, context);
       throw new InternalServerErrorException(ERROR_MESSAGES.CREATE_FAILED);
     }
   }
@@ -102,9 +107,13 @@ export abstract class BaseRepository<T extends BaseEntity>
       }
 
       return entity;
-    } catch (error) {
-      const errorMessage = `Failed to find entity by id ${id}: ${error.message}`;
-      this.logger.error(errorMessage, error.stack, context);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? `Failed to find entity by id ${id}: ${error.message}`
+          : `Failed to find entity by id ${id}: Unknown error`;
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(errorMessage, errorStack, context);
       throw new InternalServerErrorException(ERROR_MESSAGES.NOT_FOUND);
     }
   }
@@ -134,7 +143,13 @@ export abstract class BaseRepository<T extends BaseEntity>
       }
 
       // Update the entity - TypeORM will handle updatedAt via BaseEntity hooks
-      await this.repository.update({ id } as any, updateData as any);
+      // Note: TypeORM's update() method uses complex internal types (_QueryDeepPartialEntity)
+      // that are not easily accessible. The 'as any' is necessary for TypeORM compatibility
+      // while maintaining type safety at the method signature level.
+      await this.repository.update(
+        { id } as FindOptionsWhere<T>,
+        updateData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      );
 
       // Return the updated entity
       const updatedEntity = await this.findById(id);
@@ -145,13 +160,17 @@ export abstract class BaseRepository<T extends BaseEntity>
       this.logger.log(`Successfully updated entity with id: ${id}`, context);
 
       return updatedEntity;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof NotFoundException) {
         throw error;
       }
 
-      const errorMessage = `${ERROR_MESSAGES.UPDATE_FAILED}: ${error.message}`;
-      this.logger.error(errorMessage, error.stack, context);
+      const errorMessage =
+        error instanceof Error
+          ? `${ERROR_MESSAGES.UPDATE_FAILED}: ${error.message}`
+          : ERROR_MESSAGES.UPDATE_FAILED;
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(errorMessage, errorStack, context);
       throw new InternalServerErrorException(ERROR_MESSAGES.UPDATE_FAILED);
     }
   }
@@ -180,13 +199,17 @@ export abstract class BaseRepository<T extends BaseEntity>
       await this.repository.remove(existingEntity);
 
       this.logger.log(`Successfully removed entity with id: ${id}`, context);
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof NotFoundException) {
         throw error;
       }
 
-      const errorMessage = `${ERROR_MESSAGES.DELETE_FAILED}: ${error.message}`;
-      this.logger.error(errorMessage, error.stack, context);
+      const errorMessage =
+        error instanceof Error
+          ? `${ERROR_MESSAGES.DELETE_FAILED}: ${error.message}`
+          : ERROR_MESSAGES.DELETE_FAILED;
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(errorMessage, errorStack, context);
       throw new InternalServerErrorException(ERROR_MESSAGES.DELETE_FAILED);
     }
   }
@@ -213,9 +236,13 @@ export abstract class BaseRepository<T extends BaseEntity>
       this.logger.debug(`Found ${entities.length} entities`, context);
 
       return entities;
-    } catch (error) {
-      const errorMessage = `Failed to find entities: ${error.message}`;
-      this.logger.error(errorMessage, error.stack, context);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? `Failed to find entities: ${error.message}`
+          : 'Failed to find entities: Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(errorMessage, errorStack, context);
       throw new InternalServerErrorException(ERROR_MESSAGES.NOT_FOUND);
     }
   }
@@ -243,9 +270,13 @@ export abstract class BaseRepository<T extends BaseEntity>
       this.logger.debug(`Found ${count} entities matching criteria`, context);
 
       return count;
-    } catch (error: any) {
-      const errorMessage = `Failed to count entities: ${error.message}`;
-      this.logger.error(errorMessage, error.stack, context);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? `Failed to count entities: ${error.message}`
+          : 'Failed to count entities: Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(errorMessage, errorStack, context);
       throw new InternalServerErrorException(
         ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
       );
@@ -258,7 +289,7 @@ export abstract class BaseRepository<T extends BaseEntity>
    * @param obj - Object to stringify
    * @returns Safe string representation
    */
-  private safeStringify(obj: any): string {
+  private safeStringify(obj: unknown): string {
     try {
       return JSON.stringify(obj);
     } catch {

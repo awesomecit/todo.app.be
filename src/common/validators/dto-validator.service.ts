@@ -49,7 +49,7 @@ export class DtoValidatorService {
    */
   async validateAndTransform<T extends object>(
     dtoClass: ClassConstructor<T>,
-    data: any,
+    data: unknown,
     options: DtoValidationOptions = {},
   ): Promise<T> {
     const result = await this.validateAndTransformSafe(dtoClass, data, options);
@@ -73,10 +73,10 @@ export class DtoValidatorService {
    */
   async validateAndTransformSafe<T extends object>(
     dtoClass: ClassConstructor<T>,
-    data: any,
+    data: unknown,
     options: DtoValidationOptions = {},
   ): Promise<DtoValidationResult<T>> {
-    let transformedData = data;
+    let transformedData: T | unknown = data;
 
     // Applica la trasformazione se richiesta
     if (options.enableTransformation) {
@@ -90,7 +90,7 @@ export class DtoValidatorService {
 
       if (errors.length > 0) {
         return {
-          data: transformedData,
+          data: dtoInstance, // Usa sempre l'istanza DTO per consistency
           errors,
           isValid: false,
         };
@@ -100,7 +100,7 @@ export class DtoValidatorService {
     }
 
     return {
-      data: transformedData,
+      data: transformedData as T, // Type assertion sicuro dopo validazione/trasformazione
       isValid: true,
     };
   }
@@ -125,7 +125,7 @@ export class DtoValidatorService {
    */
   formatDetailedErrors(errors: ValidationError[]): Array<{
     property: string;
-    value: any;
+    value: unknown;
     constraints: string[];
   }> {
     return errors.map(error => ({

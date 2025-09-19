@@ -19,6 +19,7 @@ import { DivisionsService } from './divisions.service';
 import {
   CreateDivisionDto,
   DivisionQueryDto,
+  DivisionResponseDto,
   UpdateDivisionDto,
 } from './dto/division.dto';
 
@@ -46,7 +47,9 @@ export class DivisionsController {
   @ApiOperation({ summary: 'Create a new division' })
   @ApiResponse({ status: 201, description: 'Division created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async create(@Body() createDivisionDto: CreateDivisionDto) {
+  async create(
+    @Body() createDivisionDto: CreateDivisionDto,
+  ): Promise<DivisionResponseDto> {
     // For TDD GREEN phase - use fixed userId until auth is implemented
     const userId = SYSTEM_USER;
     return this.divisionsService.create(createDivisionDto as any, userId);
@@ -62,7 +65,12 @@ export class DivisionsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'isActive', required: false, type: Boolean })
-  async findAll(@Query() query: DivisionQueryDto) {
+  async findAll(@Query() query: DivisionQueryDto): Promise<{
+    divisions: DivisionResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     return this.divisionsService.findAll(query);
   }
 
@@ -75,7 +83,7 @@ export class DivisionsController {
     status: 200,
     description: 'Active count retrieved successfully',
   })
-  async getActiveCount() {
+  async getActiveCount(): Promise<{ count: number }> {
     const result = await this.divisionsService.findAll({ activeOnly: true });
     return { count: result.total };
   }
@@ -86,7 +94,7 @@ export class DivisionsController {
   @Get('hierarchy')
   @ApiOperation({ summary: 'Get divisions hierarchy tree' })
   @ApiResponse({ status: 200, description: 'Hierarchy retrieved successfully' })
-  async getHierarchy() {
+  async getHierarchy(): Promise<DivisionResponseDto[]> {
     return this.divisionsService.findRoots();
   }
 
@@ -98,7 +106,7 @@ export class DivisionsController {
   @ApiResponse({ status: 200, description: 'Division found' })
   @ApiResponse({ status: 404, description: DIVISION_NOT_FOUND_MESSAGE })
   @ApiParam({ name: 'id', description: DIVISION_UUID_DESCRIPTION })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string): Promise<DivisionResponseDto> {
     return this.divisionsService.findOne(id);
   }
 
@@ -109,7 +117,9 @@ export class DivisionsController {
   @ApiOperation({ summary: 'Get children divisions by parent ID' })
   @ApiResponse({ status: 200, description: 'Children divisions retrieved' })
   @ApiParam({ name: 'id', description: 'Parent division UUID' })
-  async findByParent(@Param('id') parentId: string) {
+  async findByParent(
+    @Param('id') parentId: string,
+  ): Promise<DivisionResponseDto[]> {
     return this.divisionsService.findChildren(parentId);
   }
 
@@ -124,7 +134,7 @@ export class DivisionsController {
   async update(
     @Param('id') id: string,
     @Body() updateDivisionDto: UpdateDivisionDto,
-  ) {
+  ): Promise<DivisionResponseDto> {
     // For TDD GREEN phase - use fixed userId until auth is implemented
     const userId = SYSTEM_USER;
     return this.divisionsService.update(id, updateDivisionDto as any, userId);
@@ -138,7 +148,7 @@ export class DivisionsController {
   @ApiResponse({ status: 200, description: 'Division deleted successfully' })
   @ApiResponse({ status: 404, description: DIVISION_NOT_FOUND_MESSAGE })
   @ApiParam({ name: 'id', description: DIVISION_UUID_DESCRIPTION })
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string): Promise<void> {
     // For TDD GREEN phase - use fixed userId until auth is implemented
     const userId = SYSTEM_USER;
     return this.divisionsService.remove(id, userId);

@@ -49,17 +49,24 @@ export class TimezoneManagerService {
    * @param request HTTP request object
    * @returns Promise<string> Detected timezone or UTC fallback
    */
-  async detectFromHeaders(request: any): Promise<string> {
+  async detectFromHeaders(request: {
+    headers?: Record<string, string | string[]>;
+  }): Promise<string> {
     try {
       // Priority: custom header > accept-language > user-agent
       const customTz = request.headers?.['x-timezone'];
-      if (customTz && this.validateTimezone(customTz)) {
-        return customTz;
+      const customTzString = Array.isArray(customTz) ? customTz[0] : customTz;
+      if (customTzString && this.validateTimezone(customTzString)) {
+        return customTzString;
       }
 
       const acceptLanguage = request.headers?.['accept-language'];
-      if (acceptLanguage) {
-        const extractedTz = this.extractTimezoneFromLocale(acceptLanguage);
+      const acceptLanguageString = Array.isArray(acceptLanguage)
+        ? acceptLanguage[0]
+        : acceptLanguage;
+      if (acceptLanguageString) {
+        const extractedTz =
+          this.extractTimezoneFromLocale(acceptLanguageString);
         if (extractedTz && this.validateTimezone(extractedTz)) {
           return extractedTz;
         }

@@ -94,13 +94,14 @@ export class BaseService<
    * @throws InternalServerErrorException
    */
   private handleRepositoryError(
-    error: any,
+    error: unknown,
     operation: string,
     context: string,
   ): never {
-    const errorMessage = `Failed to ${operation} entity: ${error.message}`;
+    const errorMessage = `Failed to ${operation} entity: ${error instanceof Error ? error.message : 'Unknown error'}`;
 
-    this.logger.error(errorMessage, error.stack, context);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    this.logger.error(errorMessage, errorStack, context);
 
     // Convert to appropriate HTTP exception
     throw new InternalServerErrorException(errorMessage);
@@ -112,7 +113,7 @@ export class BaseService<
    * @param obj - Object to stringify
    * @returns Safe string representation
    */
-  private safeStringify(obj: any): string {
+  private safeStringify(obj: unknown): string {
     try {
       return JSON.stringify(obj);
     } catch {

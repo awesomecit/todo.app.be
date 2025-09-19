@@ -27,7 +27,7 @@
     "editorRuler.foreground": "#ff4444"
   },
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "vscode.typescript-language-features",
     "editor.tabSize": 2,
     "editor.insertSpaces": true,
     "editor.detectIndentation": false

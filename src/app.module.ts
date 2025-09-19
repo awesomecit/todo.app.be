@@ -84,7 +84,7 @@ import { HealthController } from './health/health.controller';
   ],
 })
 export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
+  configure(consumer: MiddlewareConsumer): void {
     // Applica middleware di sicurezza a tutte le routes
     consumer.apply(SecurityMiddleware).forRoutes('*');
   }

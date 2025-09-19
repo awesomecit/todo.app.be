@@ -32,7 +32,7 @@ function buildSwaggerOptions(port: number) {
 
 function createSwaggerDocument(
   app: INestApplication,
-  options: any,
+  options: Omit<OpenAPIObject, 'paths'>,
   logger: CustomLogger,
 ): OpenAPIObject {
   const document = SwaggerModule.createDocument(app, options, {

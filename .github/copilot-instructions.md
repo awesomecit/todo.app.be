@@ -73,6 +73,59 @@ This is a backend application built with NestJS. The codebase is organized for m
   - **Use Logger service only:** Never use `console.log` - always use the Logger service
   - **Appropriate log levels:** Use correct log levels (`debug`, `info`, `warn`, `error`)
   - **Context logging:** Include meaningful context in log messages
+- **TypeScript Strong Typing:**
+  - **Mandatory strong typing:** All functions, objects, and variables MUST have explicit, strong TypeScript typing
+  - **Function signatures:** Every function must have:
+    - **Explicit parameter types:** All parameters must be explicitly typed (no `any`, prefer specific interfaces or types)
+    - **Explicit return types:** All functions must declare their return type explicitly
+    - **Generic constraints:** Use generic type constraints where applicable to ensure type safety
+  - **Safe typing practices:**
+    - **No `any` type:** Never use `any` type - use `unknown` with type guards or specific types instead
+    - **Strict null checks:** Handle `null` and `undefined` explicitly using union types (`| null`, `| undefined`)
+    - **Type guards:** Implement proper type guard functions for runtime type checking
+    - **Utility types:** Leverage TypeScript utility types (`Partial<T>`, `Required<T>`, `Pick<T, K>`, `Omit<T, K>`, etc.)
+  - **Interface and type definitions:**
+    - **Prefer interfaces:** Use interfaces for object shapes and contracts
+    - **Discriminated unions:** Use discriminated unions for type-safe state management
+    - **Readonly properties:** Use `readonly` modifier for immutable properties where appropriate
+    - **Index signatures:** Use proper index signatures with specific key and value types
+  - **Examples of proper typing:**
+
+    ```typescript
+    // ✅ Good: Strong typing with explicit types
+    interface CreateUserRequest {
+      readonly name: string;
+      readonly email: string;
+      readonly age: number | null;
+    }
+
+    interface UserRepository {
+      findById(id: string): Promise<User | null>;
+      create(data: CreateUserRequest): Promise<User>;
+      update(
+        id: string,
+        data: Partial<CreateUserRequest>,
+      ): Promise<User | null>;
+    }
+
+    function processUser<T extends CreateUserRequest>(
+      userData: T,
+      validator: (data: T) => boolean,
+    ): Promise<User | null> {
+      // Implementation with proper type safety
+    }
+
+    // ❌ Bad: Weak typing
+    function processData(data: any): any {
+      // Avoid this pattern
+    }
+    ```
+
+  - **Type safety enforcement:**
+    - **Strict TypeScript config:** Ensure `strict: true` in tsconfig.json
+    - **No implicit returns:** Functions must explicitly return values with proper types
+    - **Exhaustive type checking:** Use `never` type for exhaustiveness checks in switch statements
+    - **Error handling:** Typed error handling using Result<T, E> pattern or similar type-safe error handling
 
 ## Developer Workflows
 

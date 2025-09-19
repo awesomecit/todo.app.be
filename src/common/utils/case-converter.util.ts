@@ -15,24 +15,30 @@ export class CaseConverter {
    * @param obj Object with snake_case properties
    * @returns Object with camelCase properties
    */
-  static toCamelCase(obj: any): any {
+  static toCamelCase<T>(obj: T): T {
     if (obj === null || obj === undefined) {
       return obj;
     }
 
     if (Array.isArray(obj)) {
-      return obj.map(item => CaseConverter.toCamelCase(item));
+      return obj.map(item => CaseConverter.toCamelCase(item)) as T;
     }
 
-    if (typeof obj === OBJECT_TYPE && obj.constructor === Object) {
-      const converted: any = {};
+    if (
+      typeof obj === OBJECT_TYPE &&
+      obj !== null &&
+      obj.constructor === Object
+    ) {
+      const converted: Record<string, unknown> = {};
 
-      for (const [key, value] of Object.entries(obj)) {
+      for (const [key, value] of Object.entries(
+        obj as Record<string, unknown>,
+      )) {
         const camelKey = CaseConverter.propertyToCamelCase(key);
         converted[camelKey] = CaseConverter.toCamelCase(value);
       }
 
-      return converted;
+      return converted as T;
     }
 
     // Return primitive values as-is
@@ -44,24 +50,30 @@ export class CaseConverter {
    * @param obj Object with camelCase properties
    * @returns Object with snake_case properties
    */
-  static toSnakeCase(obj: any): any {
+  static toSnakeCase<T>(obj: T): T {
     if (obj === null || obj === undefined) {
       return obj;
     }
 
     if (Array.isArray(obj)) {
-      return obj.map(item => CaseConverter.toSnakeCase(item));
+      return obj.map(item => CaseConverter.toSnakeCase(item)) as T;
     }
 
-    if (typeof obj === OBJECT_TYPE && obj.constructor === Object) {
-      const converted: any = {};
+    if (
+      typeof obj === OBJECT_TYPE &&
+      obj !== null &&
+      obj.constructor === Object
+    ) {
+      const converted: Record<string, unknown> = {};
 
-      for (const [key, value] of Object.entries(obj)) {
+      for (const [key, value] of Object.entries(
+        obj as Record<string, unknown>,
+      )) {
         const snakeKey = CaseConverter.propertyToSnakeCase(key);
         converted[snakeKey] = CaseConverter.toSnakeCase(value);
       }
 
-      return converted;
+      return converted as T;
     }
 
     // Return primitive values as-is
@@ -97,14 +109,14 @@ export class CaseConverter {
   /**
    * Instance method for toCamelCase (for DI usage)
    */
-  toCamelCase(obj: any): any {
+  toCamelCase<T>(obj: T): T {
     return CaseConverter.toCamelCase(obj);
   }
 
   /**
    * Instance method for toSnakeCase (for DI usage)
    */
-  toSnakeCase(obj: any): any {
+  toSnakeCase<T>(obj: T): T {
     return CaseConverter.toSnakeCase(obj);
   }
 
@@ -127,7 +139,7 @@ export class CaseConverter {
    * @param dbResult Database result with snake_case fields
    * @returns API response with camelCase fields
    */
-  dbToApi(dbResult: any): any {
+  dbToApi<T>(dbResult: T): T {
     return CaseConverter.toCamelCase(dbResult);
   }
 
@@ -136,7 +148,7 @@ export class CaseConverter {
    * @param apiData API request with camelCase fields
    * @returns Database format with snake_case fields
    */
-  apiToDb(apiData: any): any {
+  apiToDb<T>(apiData: T): T {
     return CaseConverter.toSnakeCase(apiData);
   }
 
@@ -145,7 +157,7 @@ export class CaseConverter {
    * @param original Original object
    * @returns boolean true if conversion is reversible
    */
-  validateConversion(original: any): boolean {
+  validateConversion<T>(original: T): boolean {
     try {
       const converted = CaseConverter.toCamelCase(original);
       const reverted = CaseConverter.toSnakeCase(converted);
@@ -162,7 +174,7 @@ export class CaseConverter {
    * @param direction 'toCamel' or 'toSnake'
    * @returns Array of converted objects
    */
-  bulkConvert(objects: any[], direction: 'toCamel' | 'toSnake'): any[] {
+  bulkConvert<T>(objects: T[], direction: 'toCamel' | 'toSnake'): T[] {
     if (!Array.isArray(objects)) {
       throw new Error('Input must be an array');
     }

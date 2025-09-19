@@ -36,7 +36,7 @@ export class TransformResponseInterceptor<T, R>
     );
   }
 
-  private transformObject(obj: any): any {
+  private transformObject<T>(obj: unknown): T | unknown {
     if (!obj || typeof obj !== 'object') {
       return obj;
     }
