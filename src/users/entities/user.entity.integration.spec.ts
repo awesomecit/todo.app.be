@@ -1,20 +1,15 @@
 // ================================
 // USER ENTITY TDD TEST STRUCTURE
-// npm test -- src/users/entities/user.entity.spec.ts
+// npm run test:integration -- src/users/entities/user.entity.integration.spec.ts
 // ================================
 
-import * as dotenv from 'dotenv';
+import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
 import {
-  DataSource,
-  DataSourceOptions,
-  In,
-  QueryFailedError,
-  Repository,
-} from 'typeorm';
+  EntityIntegrationTestSetup,
+  cleanDatabaseState,
+} from '../../common/utils/database-test.util';
+import { createUserTestData } from './user-test-data.util';
 import { User } from './user.entity';
-
-// Carica variabili d'ambiente da .env.test
-dotenv.config({ path: '.env.test' });
 
 /**
  * Strategia TDD per Entità: Integration Behavior Testing
@@ -34,41 +29,34 @@ dotenv.config({ path: '.env.test' });
 describe('User Entity - TDD Integration Tests', () => {
   let dataSource: DataSource;
   let userRepository: Repository<User>;
+  let testSetup: EntityIntegrationTestSetup<User>;
 
   beforeAll(async () => {
-    // Configurazione database utilizzando variabili d'ambiente
-    const datasourceConfig = {
-      type: 'postgres',
-      host: process.env.DATABASE_HOST,
-      port: process.env.DATABASE_PORT,
-      username: process.env.DATABASE_USERNAME,
-      password: process.env.DATABASE_PASSWORD,
-      database: process.env.DATABASE_NAME,
-      entities: [User],
-      synchronize: true, // Solo per test, non in produzione
-      dropSchema: true, // DROP completo del schema prima della sincronizzazione
-      logging: false,
-    } as unknown as DataSourceOptions;
+    // Setup centralizzato per test di integrazione
+    testSetup = new EntityIntegrationTestSetup(
+      User,
+      {
+        entities: [User],
+        synchronize: true,
+        dropSchema: true,
+        logging: false,
+      },
+      'user',
+    );
 
-    dataSource = new DataSource(datasourceConfig);
-    await dataSource.initialize();
-    userRepository = dataSource.getRepository(User);
+    const setup = await testSetup.initialize();
+    dataSource = setup.dataSource;
+    userRepository = setup.repository;
   });
 
   beforeEach(async () => {
-    // Clean database state per ogni test
-    // Questo garantisce test isolati e ripetibili
-    await userRepository.clear();
-
-    // Reset the ID sequence to start from 1
-    await dataSource.query(`ALTER SEQUENCE user_id_seq RESTART WITH 1`);
+    // Pulisce lo stato del database usando utility centralizzata
+    await cleanDatabaseState(userRepository, dataSource, 'user');
   });
 
   afterAll(async () => {
-    // Cleanup database connection
-    if (dataSource && dataSource.isInitialized) {
-      await dataSource.destroy();
-    }
+    // Cleanup centralizzato
+    await testSetup.cleanup();
   });
 
   // ================================
@@ -85,22 +73,17 @@ describe('User Entity - TDD Integration Tests', () => {
      */
     it(`should create and persist a User entity with required fields
       and auto-generate id, createdAt, and updatedAt fields`, async () => {
-      // Arrange: Dati minimi validi per creazione User
-      // Act: Creazione e salvataggio entità
-      // Assert: Entità salvata correttamente con uuid e id generati e timestamps
+      // Arrange: Dati completi per creazione User usando utility
+      const userData = createUserTestData(1);
       const user = new User();
-      user.uuid = '123e4567-e89b-12d3-a456-426614174000';
-      user.email = 'test1@example.com';
-      user.username = 'testuser1';
-      user.firstName = 'Test';
-      user.lastName = 'User';
-      user.password = 'securepassword';
-      user.birthDate = new Date('2000-01-01');
+      Object.assign(user, userData);
 
+      // Act: Creazione e salvataggio entità
       const savedUser = await userRepository.save(user);
+
+      // Assert: Entità salvata correttamente con uuid e id generati e timestamps
       expect(savedUser).toBeDefined();
-      expect(savedUser.uuid).toBe(user.uuid);
-      expect(savedUser.uuid).toBeDefined();
+      expect(savedUser.uuid).toBe(userData.uuid);
       expect(savedUser.id).toBe(1);
       expect(savedUser.createdAt).toBeInstanceOf(Date);
       expect(savedUser.updatedAt).toBeInstanceOf(Date);
@@ -112,18 +95,10 @@ describe('User Entity - TDD Integration Tests', () => {
      * Testa che updatedAt cambi quando l'entità viene modificata
      */
     it('should update updatedAt timestamp when entity is modified', async () => {
-      // Arrange: User salvato esistente
-      // Act: Modifica campo e salva nuovamente
-      // Assert: updatedAt è cambiato, createdAt rimane uguale
-
+      // Arrange: User salvato esistente usando utility
+      const userData = createUserTestData(2);
       const user = new User();
-      user.uuid = '123e4567-e89b-12d3-a456-426614174001';
-      user.email = 'test2@example.com';
-      user.username = 'testuser2';
-      user.firstName = 'Test';
-      user.lastName = 'User';
-      user.password = 'securepassword';
-      user.birthDate = new Date('2000-01-01');
+      Object.assign(user, userData);
 
       const savedUser = await userRepository.save(user);
       const originalCreatedAt = savedUser.createdAt;
@@ -132,10 +107,11 @@ describe('User Entity - TDD Integration Tests', () => {
       // Simula attesa per garantire differenza di timestamp
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Modifica entità
+      // Act: Modifica entità
       savedUser.active = false;
       const updatedUser = await userRepository.save(savedUser);
 
+      // Assert: updatedAt è cambiato, createdAt rimane uguale
       expect(updatedUser.updatedAt).toBeInstanceOf(Date);
       expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(
         originalUpdatedAt.getTime(),
