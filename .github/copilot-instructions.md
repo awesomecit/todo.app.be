@@ -163,54 +163,229 @@ This is a backend application built with NestJS. The codebase is organized for m
 - **Error Messages:** Use standardized `ERROR_MESSAGE` constants throughout the application.
 - **Language:** All code, variables, and messages must be in English only.
 
-## Task Generation Guidelines
+## Task Management Structure
 
-- **Code Implementation Policy:** When generating task files from provided sources, **NEVER implement actual production code**. Instead:
-  - **Use Pseudo-code:** Provide clear algorithmic descriptions using pseudo-code syntax
-  - **Use Mermaid Diagrams:** Create flowcharts, sequence diagrams, and architecture diagrams to visualize logic flow
-  - **Use PlantUML-style Notation:** For complex system interactions and data flow
-  - **Provide Structure Templates:** Show file organization, import statements, and class signatures without implementation
-  - **Focus on Test Cases:** Provide comprehensive test scenario descriptions without actual test implementations
-- **Documentation Focus:** Emphasize:
-  - Clear acceptance criteria
-  - Step-by-step implementation approach
-  - Architecture and design patterns
-  - Dependencies and integration points
-  - Validation and error handling strategies
-- **Visual Communication:** Use Mermaid for:
-  - System architecture diagrams
-  - Data flow and process workflows
-  - Database entity relationships
-  - API interaction sequences
-  - TDD cycle visualization
+This project uses a structured task management system to organize work into epics, stories, and tasks. Each task follows a standardized format optimized for GitHub Copilot integration.
 
-## Integration Points
+### Directory Structure
 
-- **Swagger:** API documentation is configured in `src/swagger/swagger.config.ts`.
-- **Health Checks:** Implemented in `src/health/`.
-- **Environment Validation:** All required environment variables are validated at startup.
-- **Database:** PostgreSQL with TypeORM integration. Use Docker Compose for local development.
-- **Authentication:** JWT with Passport.js strategies (`passport-jwt`, `passport-local`) integrated with NestJS Guards.
+- `/epics/` - High-level project objectives (weeks/months)
+- `/stories/` - User-focused features (days/weeks)
+- `/tasks/` - Specific implementation steps (hours/days)
+- `/templates/` - Reusable templates for consistency
 
-## Examples
+### Naming Convention
 
-- To add a new controller, place it in `src/common/controllers/` and update `app.module.ts`.
-- To add a new environment variable, update `validation.schema.ts` and ensure it is set in your `.env` file.
-- **TDD Example for New Feature:**
-  1. **Red:** Write test in `*.spec.ts` that calls non-existent method/endpoint
-  2. **Green:** Create minimal implementation to make test pass
-  3. **Refactor:** Apply SOLID principles and improve design
-  4. **Integration:** Add integration tests after unit tests are complete
+- **Epics**: `epic-{number}-{short-name}.md` (e.g., `epic-001-task-management.md`)
+- **Stories**: `story-{number}-{short-name}.md` (e.g., `story-001-project-setup.md`)
+- **Tasks**: `task-{number}-{short-name}.md` (e.g., `task-001-nestjs-setup.md`)
 
-## References
+### Status Tracking
 
-- Main entry: `src/main.ts`
-- App module: `src/app.module.ts`
-- Validation: `src/config/validation.schema.ts`
-- Custom logic: `src/common/`
-- Swagger: `src/swagger/`
-- Health: `src/health/`
+Each file includes frontmatter with status, assignee, and metadata for easy filtering and project management.
+
+## Task Template Guide
+
+This section provides a standardized template for creating tasks in the project. It ensures consistency and clarity across all tasks.
+
+### Template Structure
+
+Each task file should follow this structure:
+
+````markdown
+---
+title: 'Task Title'
+epic: 'EPIC-XXX'
+story: 'STORY-XXX'
+task_id: 'TASK-XXX'
+status: 'todo' # todo | in-progress | done | blocked
+priority: 'medium' # low | medium | high | critical
+estimated_hours: 0
+estimated_story_points: 0
+tags: []
+assignee: ''
+created_date: ''
+---
+
+# TASK-XXX: [Task Title]
+
+**Epic**: [EPIC-XXX] Epic Name
+**Story**: [STORY-XXX] Story Name
+**Duration**: X hours
+**Prerequisites**: List any required setup
+
+## 🎯 Objective
+
+Brief description of what this task achieves and why it's important.
+
+## ✅ Acceptance Criteria
+
+- [ ] Specific, measurable criteria
+- [ ] Each criterion should be testable
+- [ ] Use checkboxes for tracking
+
+## 🔧 Implementation Steps
+
+### 1. Step Name
+
+```bash
+# Commands or code examples
+```
+````
+
+Description of what this step accomplishes.
+
+### 2. Next Step
+
+Detailed implementation instructions with code examples.
+
+## 🧪 Testing & Validation
+
+```bash
+# Commands to verify the implementation
+```
+
+Expected output or behavior.
+
+## 📋 Definition of Done
+
+- ✅ All acceptance criteria met
+- ✅ Code reviewed and tested
+- ✅ Documentation updated
+
+## 🔗 Related Tasks
+
+- **Next**: [TASK-XXX] Task Name
+- **Depends on**: [TASK-XXX] Task Name
+- **Blocks**: [TASK-XXX] Task Name
+
+## 📝 Notes
+
+Additional context, considerations, or references.
+
+## 🐛 Troubleshooting
+
+**Issue**: Common problem
+**Solution**: How to resolve it
+
+````
+
+### Usage Guidelines
+
+1. **Frontmatter**: Use the frontmatter section to define metadata like task ID, status, priority, and assignee.
+2. **Objective**: Clearly state the purpose of the task.
+3. **Acceptance Criteria**: Define measurable and testable criteria for task completion.
+4. **Implementation Steps**: Break down the task into actionable steps with examples.
+5. **Testing & Validation**: Include commands or methods to validate the implementation.
+6. **Definition of Done**: Ensure all criteria are met before marking the task as complete.
+7. **Related Tasks**: Link to other tasks that are dependent, blocked, or related.
 
 ---
 
-_If any section is unclear or missing, please provide feedback to improve these instructions._
+**Reminder**: Always follow this template for creating new tasks to maintain consistency and clarity across the project.
+
+## GitHub Copilot Guide
+
+### Principles for Effective Usage
+
+1. **Atomic Tasks**: Each request should have a single clear objective.
+   - ❌ BAD: "Create authentication, database, and tests."
+   - ✅ GOOD: "Create JWT authentication middleware to secure API routes."
+
+2. **Context Before Action**: Always provide context before requesting changes.
+   - ✅ GOOD: "In `src/auth/auth.service.ts`, I have a `validateUser()` method that checks username/password. I want to add support for email-based authentication instead of username."
+
+3. **Specificity vs. Creativity**: Be specific about technical details but leave room for creativity.
+   - ✅ GOOD: "Create a NestJS interceptor that automatically logs all HTTP requests, including method, URL, client IP, user-agent, and response time."
+
+### Structuring Atomic Tasks
+
+#### Example 1: Specific Feature
+
+```markdown
+**Objective**: Implement email validation in the registration DTO.
+
+**Context**:
+- File: `src/auth/dto/register.dto.ts`
+- Framework: NestJS with `class-validator`
+- Requirement: Email must be valid and unique in the database.
+
+**Acceptance Criteria**:
+- [ ] Apply `@IsEmail()` decorator to the `email` field.
+- [ ] Add custom validation for email uniqueness.
+- [ ] Provide an error message localized in Italian.
+- [ ] Write unit tests for validation.
+````
+
+#### Example 2: Targeted Refactoring
+
+```markdown
+**Objective**: Extract password hashing logic into a dedicated service.
+
+**Context**:
+
+- Currently in: `src/auth/auth.service.ts` (lines 45-62)
+- Pattern: Dependency Injection in NestJS
+- Crypto: Use `bcrypt` for hashing.
+
+**Expected Output**:
+
+- New file: `src/auth/password.service.ts`
+- Methods: `hashPassword()`, `comparePassword()`
+- Update `AuthService` to use the new service.
+```
+
+### Prompt Engineering Techniques
+
+1. **STAR Template**: Situation, Task, Action, Result.
+   - **Situation**: "I have a NestJS controller handling file uploads."
+   - **Task**: "Add validation for max file size (5MB)."
+   - **Action**: "Implement a custom decorator `@MaxFileSize()`."
+   - **Result**: "The decorator should reject files >5MB with HTTP 413 error."
+
+2. **Progressive Context**: Build context step-by-step.
+   - "I'm working on a NestJS API for task management."
+   - "I have a `Task` entity with a Many-to-One relationship to `User`."
+   - "I want to implement soft delete for tasks."
+   - "Soft delete should preserve relationships and be transparent in queries."
+
+3. **Input/Output Examples**: Provide concrete examples.
+   - **Input**:
+     ```json
+     {
+       "title": "Complete documentation",
+       "description": "Update README with new features",
+       "dueDate": "2025-09-20T10:00:00Z"
+     }
+     ```
+   - **Output**:
+     ```json
+     {
+       "id": 123,
+       "title": "Complete documentation",
+       "status": "pending",
+       "createdAt": "2025-09-17T11:30:00Z"
+     }
+     ```
+
+### Anti-Patterns to Avoid
+
+1. **Tasks Too Large**:
+   - ❌ BAD: "Create the entire authentication module."
+   - ✅ GOOD:
+     1. "Create base `AuthModule` with imports/exports."
+     2. "Implement JWT strategy for Passport."
+     3. "Create `AuthGuard` to secure routes."
+     4. "Add refresh token mechanism."
+
+2. **Insufficient Context**:
+   - ❌ BAD: "Fix the error in the code."
+   - ✅ GOOD: "In `UserService.updateProfile()` line 34, the `email` field is not validated before update. Add validation to ensure the email is unique and valid."
+
+3. **Ambiguous Requests**:
+   - ❌ BAD: "Improve performance."
+   - ✅ GOOD: "Optimize the `getUsersWithTasks()` query using JOIN instead of N+1 queries. Currently takes 1.2s for 100 users."
+
+---
+
+**Reminder**: GitHub Copilot works best with clear, structured, and specific instructions. 🚀

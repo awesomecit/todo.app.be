@@ -1,139 +1,79 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Column, Entity } from 'typeorm';
-import { BaseEntity } from '../../common/entities/base.entity';
+import {
+  BeforeInsert,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
-export enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin',
-  MODERATOR = 'moderator',
-}
+const TIMESTAMP_WITH_TIME_ZONE = 'timestamp with time zone'; // PostgreSQL specific
 
-/**
- * User entity representing a user in the system.
- * Extends BaseEntity to inherit common fields like id, createdAt, updatedAt, etc.
- */
-@Entity('users')
-export class User extends BaseEntity {
-  @ApiProperty({
-    description: 'User first name',
-    example: 'Mario',
-    maxLength: 50,
-  })
+@Entity('user')
+// @Index(['role']) // Indice semplice per query per ruolo
+export class User {
+  @PrimaryColumn('uuid')
+  uuid: string;
+
   @Column({
-    type: 'varchar',
-    length: 50,
-    nullable: false,
-    name: 'first_name',
-  })
-  firstName: string;
-
-  @ApiProperty({
-    description: 'User last name',
-    example: 'Rossi',
-    maxLength: 50,
-  })
-  @Column({
-    type: 'varchar',
-    length: 50,
-    nullable: false,
-    name: 'last_name',
-  })
-  lastName: string;
-
-  @ApiProperty({
-    description: 'User password (hashed)',
-    maxLength: 100,
-  })
-  @Column({
-    type: 'varchar',
-    length: 100,
-    nullable: false,
-  })
-  password: string;
-
-  @ApiProperty({
-    description: 'User email address',
-    example: 'john.doe@example.com',
-    maxLength: 255,
-  })
-  @Column({
-    type: 'varchar',
-    length: 255,
+    type: 'int',
+    generated: 'increment',
     nullable: false,
     unique: true,
   })
-  email: string;
+  id: number;
 
-  @ApiProperty({
-    description: 'User age',
-    example: 30,
-    minimum: 1,
-    maximum: 150,
-    required: false,
-  })
+  @CreateDateColumn({ type: TIMESTAMP_WITH_TIME_ZONE, name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: TIMESTAMP_WITH_TIME_ZONE, name: 'updated_at' })
+  updatedAt: Date;
+
   @Column({
-    type: 'int',
+    type: TIMESTAMP_WITH_TIME_ZONE,
+    name: 'deleted_at',
     nullable: true,
   })
-  age?: number;
+  deletedAt?: Date;
 
-  @ApiProperty({
-    description: 'Whether the user account is active',
-    example: true,
-    default: true,
-  })
+  @Column({ default: true, nullable: false })
+  active: boolean;
+
+  @Column({ name: 'username', length: 20, unique: true, nullable: false })
+  username: string;
+
+  @Column({ name: 'first_name', length: 50 })
+  firstName: string;
+
+  @Column({ name: 'last_name', length: 50 })
+  lastName: string;
+
+  @Column({ length: 100 })
+  password: string;
+
+  @Column({ unique: true, length: 255, nullable: false })
+  email: string;
+
+  // Data anagrafica - usa DATE per evitare problemi di fuso orario
   @Column({
-    type: 'boolean',
-    default: true,
-    name: 'is_active_user', // Different from BaseEntity's isActive to avoid conflicts
+    type: 'date',
+    nullable: true,
+    name: 'birth_date',
+    comment: 'User birth date (date only, no time component)',
   })
-  isActiveUser: boolean;
+  birthDate?: Date;
 
-  @ApiProperty({
-    description: 'User role in the system',
-    example: UserRole.USER,
-    enum: UserRole,
-    default: UserRole.USER,
-  })
-  @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.USER,
-  })
-  role: UserRole;
+  // @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  // role: UserRole;
 
-  /**
-   * Get full name for display
-   */
-  getFullName(): string {
-    return `${this.firstName} ${this.lastName}`;
-  }
-
-  /**
-   * Custom method to get full user information for display
-   */
-  getDisplayInfo(): string {
-    return `${this.getFullName()} (${this.email}) - ${this.role}`;
-  }
-
-  /**
-   * Check if user has admin privileges
-   */
-  isAdmin(): boolean {
-    return this.role === UserRole.ADMIN;
-  }
-
-  /**
-   * Check if user has moderator privileges
-   */
-  isModerator(): boolean {
-    return this.role === UserRole.MODERATOR;
-  }
-
-  /**
-   * Check if user account is both active in BaseEntity and User-specific active
-   */
-  isFullyActive(): boolean {
-    return this.isActive() && this.isActiveUser;
+  @BeforeInsert()
+  setDefaultActive() {
+    if (
+      this.active === undefined ||
+      this.active === null ||
+      this.active === false
+    ) {
+      this.active = true;
+    }
   }
 }
