@@ -3,7 +3,7 @@
 // npm run test:integration -- src/users/entities/user.entity.integration.spec.ts
 // ================================
 
-import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import {
   EntityIntegrationTestSetup,
   cleanDatabaseState,
@@ -60,19 +60,17 @@ describe('User Entity - TDD Integration Tests', () => {
   });
 
   // ================================
-  // TEST SERIE 1: BASIC ENTITY CREATION
-  // Obiettivo: Verificare che l'entità possa essere creata e persistita
+  // TEST SERIE 1: USER SPECIFIC CREATION
+  // Obiettivo: Verificare creazione User con campi specifici (non testati in BaseEntity)
   // ================================
 
-  describe('Basic Entity Creation', () => {
+  describe('User Specific Creation', () => {
     /**
-     * TEST 1: Verifica creazione entità base
-     * Questo test definisce il comportamento minimo: un'entità User può essere
-     * creata con campi obbligatori e salvata nel database,
-     * Testa che generi automaticamente id, createdAt, updatedAt
+     * TEST 1: Verifica creazione User con tutti i campi specifici
+     * Testa che User possa essere creato con tutti i suoi campi specifici
+     * I comportamenti di BaseEntity (id, uuid, timestamps, active, version) sono già testati in BaseEntity
      */
-    it(`should create and persist a User entity with required fields
-      and auto-generate id, createdAt, and updatedAt fields`, async () => {
+    it('should create User with all user-specific fields', async () => {
       // Arrange: Dati completi per creazione User usando utility
       const userData = createUserTestData(1);
       const user = new User();
@@ -81,114 +79,49 @@ describe('User Entity - TDD Integration Tests', () => {
       // Act: Creazione e salvataggio entità
       const savedUser = await userRepository.save(user);
 
-      // Assert: Entità salvata correttamente con uuid e id generati e timestamps
+      // Assert: Verifica solo i campi specifici di User (BaseEntity è già testata)
       expect(savedUser).toBeDefined();
-      expect(savedUser.uuid).toBe(userData.uuid);
-      expect(savedUser.id).toBe(1);
-      expect(savedUser.createdAt).toBeInstanceOf(Date);
-      expect(savedUser.updatedAt).toBeInstanceOf(Date);
-      expect(savedUser.deletedAt).toBeNull();
-    });
-
-    /**
-     * TEST 2: Verifica aggiornamento timestamps
-     * Testa che updatedAt cambi quando l'entità viene modificata
-     */
-    it('should update updatedAt timestamp when entity is modified', async () => {
-      // Arrange: User salvato esistente usando utility
-      const userData = createUserTestData(2);
-      const user = new User();
-      Object.assign(user, userData);
-
-      const savedUser = await userRepository.save(user);
-      const originalCreatedAt = savedUser.createdAt;
-      const originalUpdatedAt = savedUser.updatedAt;
-
-      // Simula attesa per garantire differenza di timestamp
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Act: Modifica entità
-      savedUser.active = false;
-      const updatedUser = await userRepository.save(savedUser);
-
-      // Assert: updatedAt è cambiato, createdAt rimane uguale
-      expect(updatedUser.updatedAt).toBeInstanceOf(Date);
-      expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(
-        originalUpdatedAt.getTime(),
-      );
-      expect(updatedUser.createdAt.getTime()).toBe(originalCreatedAt.getTime());
-      expect(updatedUser.active).toBe(false);
-      expect(updatedUser.deletedAt).toBeNull();
+      expect(savedUser.email).toBe(userData.email);
+      expect(savedUser.username).toBe(userData.username);
+      expect(savedUser.firstName).toBe(userData.firstName);
+      expect(savedUser.lastName).toBe(userData.lastName);
+      expect(savedUser.password).toBe(userData.password);
+      expect(savedUser.birthDate).toEqual(userData.birthDate);
     });
   });
 
   // ================================
-  // TEST SERIE 2: FIELD VALIDATION
-  // Obiettivo: Verificare validazioni dei campi e constraint
+  // TEST SERIE 2: USER FIELD VALIDATION
+  // Obiettivo: Verificare validazioni dei campi specifici di User
   // ================================
 
-  describe('Field Validation and Constraints', () => {
+  describe('User Field Validation and Constraints', () => {
     /**
-     * Verifica email unique constraint
+     * TEST 2: Verifica email unique constraint
      * Testa che due utenti non possano avere la stessa email
      */
     it('should enforce unique constraint on email field', async () => {
-      // Arrange: Due User con stessa email
-      // Act: Tentativo di salvare entrambi
-      // Assert: Secondo salvataggio fallisce con constraint violation
-      const user1 = new User();
-      user1.uuid = '123e4567-e89b-12d3-a456-426614174002';
-      user1.email = 'test3@example.com';
-      user1.username = 'uniqueuser';
-      user1.firstName = 'Test';
-      user1.lastName = 'User';
-      user1.password = 'securepassword';
-      user1.birthDate = new Date('2000-01-01');
-
-      await userRepository.save(user1);
-
-      const user2 = new User();
-      user2.uuid = '123e4567-e89b-12d3-a456-426614174003';
-      user2.email = 'test3@example.com';
-      user2.username = 'anotheruser';
-      user2.firstName = 'Test';
-      user2.lastName = 'User';
-      user2.password = 'securepassword';
-      user2.birthDate = new Date('2000-01-01');
-      await expect(userRepository.save(user2)).rejects.toThrow();
-
-      await userRepository.delete({
-        uuid: In([
-          '123e4567-e89b-12d3-a456-426614174002',
-          '123e4567-e89b-12d3-a456-426614174003',
-        ]),
+      // Arrange: Due User con stessa email ma dati diversi
+      const userData1 = createUserTestData(1, {
+        email: 'duplicate@example.com',
+      });
+      const userData2 = createUserTestData(2, {
+        email: 'duplicate@example.com',
       });
 
-      const user3 = new User();
-      user3.uuid = '123e4567-e89b-12d3-a456-426614174004';
-      user3.email = 'test3@example.com';
-      user3.username = 'uniqueuser2';
-      user3.firstName = 'Test';
-      user3.lastName = 'User';
-      user3.password = 'securepassword';
-      user3.birthDate = new Date('2000-01-01');
+      const user1 = new User();
+      Object.assign(user1, userData1);
 
-      await userRepository.save(user3);
+      const user2 = new User();
+      Object.assign(user2, userData2);
 
-      const user4 = new User();
-      user4.uuid = '123e4567-e89b-12d3-a456-426614174005';
-      user4.email = 'test3@example.com';
-      user4.username = 'uniqueuser3';
-      user4.firstName = 'Test';
-      user4.lastName = 'User';
-      user4.password = 'securepassword';
-      user4.birthDate = new Date('2000-01-01');
+      // Act: Salva primo utente
+      await userRepository.save(user1);
 
+      // Assert: Secondo salvataggio fallisce con constraint violation
       let caughtError: any;
-
       try {
         await userRepository.save(user2);
-        // Se arriviamo qui, il test dovrebbe fallire perché ci aspettavamo un errore
         fail(
           'Expected save operation to throw an error due to unique constraint violation',
         );
@@ -198,84 +131,32 @@ describe('User Entity - TDD Integration Tests', () => {
 
       // Verifica specifica che sia il tipo di errore corretto
       expect(caughtError).toBeInstanceOf(QueryFailedError);
-
-      // Verifica che sia specificamente una violazione di unique constraint
       expect(caughtError.code).toBe('23505'); // PostgreSQL unique constraint violation
-
-      // Verifica che l'errore menzioni l'email duplicata
-      expect(caughtError.detail).toContain('test3@example.com');
-
-      // code: '23505',
-      // detail: 'Key (email)=(test3@example.com) already exists.',
-      // UQ_e12875dfb3b1d92d7d7c5377e22
-      // TODO:
-      // portare in un helper che sulla duplicazione di chiave unica
-      // estragga il campo e il valore duplicato per asserirlo nei test
-      // function extractUniqueConstraintViolationFormatted(error: any): string | null {
-      //   if (error?.code === '23505' && error?.detail) {
-      //     const match = error.detail.match(/\(([^)]+)\)=\(([^)]+)\)/);
-      //     if (match) {
-      //       return `DUPLICATE_${match[1].toUpperCase()}`;
-      //     }
-      //   }
-      //   return null;
-      // }
+      expect(caughtError.detail).toContain('duplicate@example.com');
     });
 
+    /**
+     * TEST 3: Verifica username unique constraint
+     * Testa che due utenti non possano avere lo stesso username
+     */
     it('should enforce unique constraint on username field', async () => {
-      // Arrange: Due User con stessa username
-      // Act: Tentativo di salvare entrambi
-      // Assert: Secondo salvataggio fallisce con constraint violation
+      // Arrange: Due User con stesso username ma dati diversi
+      const userData1 = createUserTestData(1, { username: 'duplicateuser' });
+      const userData2 = createUserTestData(2, { username: 'duplicateuser' });
+
       const user1 = new User();
-      user1.uuid = '123e4567-e89b-12d3-a456-426614174006';
-      user1.email = 'test4@example.com';
-      user1.username = 'uniqueuser';
-      user1.firstName = 'Test';
-      user1.lastName = 'User';
-      user1.password = 'securepassword';
-      user1.birthDate = new Date('2000-01-01');
-      await userRepository.save(user1);
+      Object.assign(user1, userData1);
+
       const user2 = new User();
-      user2.uuid = '123e4567-e89b-12d3-a456-426614174007';
-      user2.email = 'test5@example.com';
-      user2.username = 'uniqueuser';
-      user2.firstName = 'Test';
-      user2.lastName = 'User';
-      user2.password = 'securepassword';
-      user2.birthDate = new Date('2000-01-01');
-      await expect(userRepository.save(user2)).rejects.toThrow();
+      Object.assign(user2, userData2);
 
-      await userRepository.delete({
-        uuid: In([
-          '123e4567-e89b-12d3-a456-426614174006',
-          '123e4567-e89b-12d3-a456-426614174007',
-        ]),
-      });
+      // Act: Salva primo utente
+      await userRepository.save(user1);
 
-      const user3 = new User();
-      user3.uuid = '123e4567-e89b-12d3-a456-426614174008';
-      user3.email = 'test6@example.com';
-      user3.username = 'uniqueuser';
-      user3.firstName = 'Test';
-      user3.lastName = 'User';
-      user3.password = 'securepassword';
-      user3.birthDate = new Date('2000-01-01');
-      await userRepository.save(user3);
-
-      const user4 = new User();
-      user4.uuid = '123e4567-e89b-12d3-a456-426614174009';
-      user4.email = 'test7@example.com';
-      user4.username = 'uniqueuser';
-      user4.firstName = 'Test';
-      user4.lastName = 'User';
-      user4.password = 'securepassword';
-      user4.birthDate = new Date('2000-01-01');
-
+      // Assert: Secondo salvataggio fallisce con constraint violation
       let caughtError: any;
-
       try {
         await userRepository.save(user2);
-        // Se arriviamo qui, il test dovrebbe fallire perché ci aspettavamo un errore
         fail(
           'Expected save operation to throw an error due to unique constraint violation',
         );
@@ -285,45 +166,34 @@ describe('User Entity - TDD Integration Tests', () => {
 
       // Verifica specifica che sia il tipo di errore corretto
       expect(caughtError).toBeInstanceOf(QueryFailedError);
-
-      // Verifica che sia specificamente una violazione di unique constraint
       expect(caughtError.code).toBe('23505'); // PostgreSQL unique constraint violation
-
-      // Verifica che l'errore menzioni l'username duplicata
-      expect(caughtError.detail).toContain('uniqueuser');
-
-      // code: '23505',
-      // detail: 'Key (username)=(uniqueuser) already exists.',
-      // UQ_78a916df40e02a9deb1c4b75edb
+      expect(caughtError.detail).toContain('duplicateuser');
     });
 
-    // TOCHECK: should add more validation tests if custom validations are added
-    //e.g. charrs length, formats, ranges, etc.
-
-    it('should map all camelCase properties to snake_case database columns', async () => {
-      // Arrange: User con firstName specifico
-      // Act: Salvataggio e query SQL diretta
-      // Assert: Valore presente in colonna first_name
+    /**
+     * TEST 4: Verifica mapping camelCase -> snake_case per campi User
+     * Testa che i campi specifici di User siano mappati correttamente nel database
+     */
+    it('should map User camelCase properties to snake_case database columns', async () => {
+      // Arrange: User con dati specifici
+      const userData = createUserTestData(1);
       const user = new User();
-      user.uuid = '123e4567-e89b-12d3-a456-426614174010';
-      user.email = 'test8@example.com';
-      user.username = 'testuser8';
-      user.firstName = 'CamelCase';
-      user.lastName = 'Mapping';
-      user.password = 'securepassword';
-      user.birthDate = new Date('2000-01-01');
+      Object.assign(user, userData);
 
+      // Act: Salvataggio e query SQL diretta
       await userRepository.save(user);
       const rawResult = await dataSource.query(
         'SELECT * FROM "user" WHERE uuid = $1',
         [user.uuid],
       );
-      expect(rawResult[0]).toHaveProperty('first_name');
-      expect(rawResult[0]).toHaveProperty('last_name');
+
+      // Assert: Verifica mapping specifico per campi User
+      expect(rawResult[0]).toHaveProperty('first_name', userData.firstName);
+      expect(rawResult[0]).toHaveProperty('last_name', userData.lastName);
       expect(rawResult[0]).toHaveProperty('birth_date');
-      expect(rawResult[0]).toHaveProperty('created_at');
-      expect(rawResult[0]).toHaveProperty('updated_at');
-      expect(rawResult[0]).toHaveProperty('deleted_at');
+      expect(rawResult[0]).toHaveProperty('username', userData.username);
+      expect(rawResult[0]).toHaveProperty('email', userData.email);
+      expect(rawResult[0]).toHaveProperty('password', userData.password);
     });
   });
 

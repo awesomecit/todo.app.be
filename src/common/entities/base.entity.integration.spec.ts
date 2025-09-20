@@ -1,0 +1,238 @@
+// ================================
+// BASE ENTITY TDD TEST STRUCTURE
+// npm run test:integration -- src/common/entities/base.entity.integration.spec.ts
+// ================================
+
+import { DataSource, Repository } from 'typeorm';
+import { createMinimalUserTestData } from '../../users/entities/user-test-data.util';
+import {
+  EntityIntegrationTestSetup,
+  cleanDatabaseState,
+} from '../utils/database-test.util';
+import { BaseEntity } from './base.entity';
+
+// Test entity concreta per testare BaseEntity
+import { Entity } from 'typeorm';
+
+@Entity('test_base_entity')
+class TestEntity extends BaseEntity {
+  // Entità di test senza campi aggiuntivi per testare solo BaseEntity
+}
+
+/**
+ * Strategia TDD per BaseEntity: Integration Behavior Testing
+ *
+ * Focus sui comportamenti comuni a tutte le entità:
+ * - Auto-generazione di id, uuid, timestamps
+ * - Comportamento di createdAt/updatedAt
+ * - Comportamento del flag active
+ * - Comportamento del versioning
+ * - Soft delete functionality
+ *
+ * NON testiamo:
+ * - Sintassi TypeORM base (già testata dal framework)
+ * - Funzionalità TypeORM standard
+ */
+
+describe('BaseEntity - TDD Integration Tests', () => {
+  let dataSource: DataSource;
+  let testEntityRepository: Repository<TestEntity>;
+  let testSetup: EntityIntegrationTestSetup<TestEntity>;
+
+  beforeAll(async () => {
+    // Setup centralizzato per test di integrazione
+    testSetup = new EntityIntegrationTestSetup(
+      TestEntity,
+      {
+        entities: [TestEntity],
+        synchronize: true,
+        dropSchema: true,
+        logging: false,
+      },
+      'test_base_entity',
+    );
+
+    const setup = await testSetup.initialize();
+    dataSource = setup.dataSource;
+    testEntityRepository = setup.repository;
+  });
+
+  beforeEach(async () => {
+    // Pulisce lo stato del database usando utility centralizzata
+    await cleanDatabaseState(
+      testEntityRepository,
+      dataSource,
+      'test_base_entity',
+    );
+  });
+
+  afterAll(async () => {
+    // Cleanup centralizzato
+    await testSetup.cleanup();
+  });
+
+  // ================================
+  // TEST SERIE 1: BASIC ENTITY CREATION
+  // Obiettivo: Verificare che BaseEntity generi automaticamente i campi base
+  // ================================
+
+  describe('Basic BaseEntity Creation', () => {
+    /**
+     * TEST 1: Verifica creazione entità base
+     * Testa che BaseEntity generi automaticamente id, createdAt, updatedAt, version
+     */
+    it('should create and persist entity with auto-generated base fields', async () => {
+      // Arrange: Dati minimi per creazione entità
+      const testData = createMinimalUserTestData(1);
+      const entity = new TestEntity();
+      entity.uuid = testData.uuid;
+
+      // Act: Creazione e salvataggio entità
+      const savedEntity = await testEntityRepository.save(entity);
+
+      // Assert: Entità salvata con campi base auto-generati
+      expect(savedEntity).toBeDefined();
+      expect(savedEntity.uuid).toBe(testData.uuid);
+      expect(savedEntity.id).toBe(1);
+      expect(savedEntity.createdAt).toBeInstanceOf(Date);
+      expect(savedEntity.updatedAt).toBeInstanceOf(Date);
+      expect(savedEntity.deletedAt).toBeNull();
+      expect(savedEntity.active).toBe(true); // Default impostato da @BeforeInsert
+      expect(savedEntity.version).toBe(1); // Versione iniziale
+    });
+
+    /**
+     * TEST 2: Verifica comportamento del flag active predefinito
+     * Testa che active sia impostato automaticamente a true durante la creazione
+     */
+    it('should set active to true by default on creation', async () => {
+      // Arrange: Entità senza specificare active
+      const testData = createMinimalUserTestData(2);
+      const entity = new TestEntity();
+      entity.uuid = testData.uuid;
+
+      // Act: Salvataggio senza impostare active
+      const savedEntity = await testEntityRepository.save(entity);
+
+      // Assert: active è impostato automaticamente a true
+      expect(savedEntity.active).toBe(true);
+    });
+
+    /**
+     * TEST 3: Verifica che active possa essere sovrascritto
+     * Testa che il valore di active possa essere impostato esplicitamente
+     */
+    it('should allow explicit override of active field', async () => {
+      // Arrange: Entità con active = false esplicito
+      const testData = createMinimalUserTestData(3);
+      const entity = new TestEntity();
+      entity.uuid = testData.uuid;
+      entity.active = false;
+
+      // Act: Salvataggio con active esplicito
+      const savedEntity = await testEntityRepository.save(entity);
+
+      // Assert: active mantiene il valore esplicito
+      expect(savedEntity.active).toBe(false);
+    });
+  });
+
+  // ================================
+  // TEST SERIE 2: TIMESTAMP BEHAVIOR
+  // Obiettivo: Verificare comportamento di createdAt/updatedAt
+  // ================================
+
+  describe('Timestamp Behavior', () => {
+    /**
+     * TEST 4: Verifica aggiornamento di updatedAt
+     * Testa che updatedAt venga aggiornato quando l'entità viene modificata
+     */
+    it('should update updatedAt timestamp when entity is modified', async () => {
+      // Arrange: Entità salvata esistente
+      const testData = createMinimalUserTestData(4);
+      const entity = new TestEntity();
+      entity.uuid = testData.uuid;
+
+      const savedEntity = await testEntityRepository.save(entity);
+      const originalCreatedAt = savedEntity.createdAt;
+      const originalUpdatedAt = savedEntity.updatedAt;
+      const originalVersion = savedEntity.version;
+
+      // Simula attesa per garantire differenza di timestamp
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Act: Modifica entità
+      savedEntity.active = false;
+      const updatedEntity = await testEntityRepository.save(savedEntity);
+
+      // Assert: updatedAt è cambiato, createdAt rimane uguale, version incrementata
+      expect(updatedEntity.updatedAt).toBeInstanceOf(Date);
+      expect(updatedEntity.updatedAt.getTime()).toBeGreaterThan(
+        originalUpdatedAt.getTime(),
+      );
+      expect(updatedEntity.createdAt.getTime()).toBe(
+        originalCreatedAt.getTime(),
+      );
+      expect(updatedEntity.version).toBe(originalVersion + 1);
+      expect(updatedEntity.active).toBe(false);
+    });
+
+    /**
+     * TEST 5: Verifica che createdAt non cambi dopo aggiornamento
+     * Testa che il campo createdAt rimanga invariato dopo aggiornamenti
+     */
+    it('should not change createdAt after updates', async () => {
+      // Arrange: Entità salvata esistente
+      const testData = createMinimalUserTestData(5);
+      const entity = new TestEntity();
+      entity.uuid = testData.uuid;
+
+      const savedEntity = await testEntityRepository.save(entity);
+      const originalCreatedAt = savedEntity.createdAt;
+
+      // Act: Multipli aggiornamenti
+      savedEntity.active = false;
+      await testEntityRepository.save(savedEntity);
+
+      savedEntity.active = true;
+      const finalEntity = await testEntityRepository.save(savedEntity);
+
+      // Assert: createdAt rimane sempre uguale
+      expect(finalEntity.createdAt.getTime()).toBe(originalCreatedAt.getTime());
+      expect(finalEntity.version).toBe(3); // Versione incrementata
+    });
+  });
+
+  // ================================
+  // TEST SERIE 3: VERSION BEHAVIOR
+  // Obiettivo: Verificare comportamento del versioning
+  // ================================
+
+  describe('Version Behavior', () => {
+    /**
+     * TEST 6: Verifica incremento della versione
+     * Testa che la versione si incrementi ad ogni aggiornamento
+     */
+    it('should increment version on each update', async () => {
+      // Arrange: Entità salvata esistente
+      const testData = createMinimalUserTestData(1);
+      const entity = new TestEntity();
+      entity.uuid = testData.uuid;
+
+      const savedEntity = await testEntityRepository.save(entity);
+      expect(savedEntity.version).toBe(1);
+
+      // Act: Prima modifica
+      savedEntity.active = false;
+      const firstUpdate = await testEntityRepository.save(savedEntity);
+      expect(firstUpdate.version).toBe(2);
+
+      // Act: Seconda modifica
+      firstUpdate.active = true;
+      const secondUpdate = await testEntityRepository.save(firstUpdate);
+
+      // Assert: Versione incrementata correttamente
+      expect(secondUpdate.version).toBe(3);
+    });
+  });
+});

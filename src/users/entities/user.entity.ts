@@ -1,44 +1,9 @@
-import {
-  BeforeInsert,
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-
-const TIMESTAMP_WITH_TIME_ZONE = 'timestamp with time zone'; // PostgreSQL specific
+import { Column, Entity } from 'typeorm';
+import { BaseEntity } from '../../common/entities/base.entity';
 
 @Entity('user')
 // @Index(['role']) // Indice semplice per query per ruolo
-export class User {
-  @PrimaryColumn('uuid')
-  uuid: string;
-
-  @Column({
-    type: 'int',
-    generated: 'increment',
-    nullable: false,
-    unique: true,
-  })
-  id: number;
-
-  @CreateDateColumn({ type: TIMESTAMP_WITH_TIME_ZONE, name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: TIMESTAMP_WITH_TIME_ZONE, name: 'updated_at' })
-  updatedAt: Date;
-
-  @Column({
-    type: TIMESTAMP_WITH_TIME_ZONE,
-    name: 'deleted_at',
-    nullable: true,
-  })
-  deletedAt?: Date;
-
-  @Column({ default: true, nullable: false })
-  active: boolean;
-
+export class User extends BaseEntity {
   @Column({ name: 'username', length: 20, unique: true, nullable: false })
   username: string;
 
@@ -65,15 +30,4 @@ export class User {
 
   // @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   // role: UserRole;
-
-  @BeforeInsert()
-  setDefaultActive() {
-    if (
-      this.active === undefined ||
-      this.active === null ||
-      this.active === false
-    ) {
-      this.active = true;
-    }
-  }
 }
