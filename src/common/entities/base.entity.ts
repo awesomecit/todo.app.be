@@ -1,7 +1,7 @@
 import {
-  BeforeInsert,
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   PrimaryColumn,
   UpdateDateColumn,
   VersionColumn,
@@ -56,7 +56,7 @@ export abstract class BaseEntity {
    * Timestamp di eliminazione logica (soft delete)
    * null = entità attiva, Date = entità eliminata logicamente
    */
-  @Column({
+  @DeleteDateColumn({
     type: TIMESTAMP_WITH_TIME_ZONE,
     name: 'deleted_at',
     nullable: true,
@@ -64,28 +64,9 @@ export abstract class BaseEntity {
   deletedAt?: Date;
 
   /**
-   * Flag di stato attivazione dell'entità
-   * true = entità attiva, false = entità disattivata
-   * Default: true (impostato automaticamente alla creazione)
-   */
-  @Column({ default: true, nullable: false })
-  active: boolean;
-
-  /**
    * Versione dell'entità per optimistic locking
    * Incrementata automaticamente ad ogni aggiornamento
    */
   @VersionColumn()
   version: number;
-
-  /**
-   * Hook eseguito prima dell'inserimento nel database
-   * Garantisce che il flag active sia impostato correttamente solo se non è definito
-   */
-  @BeforeInsert()
-  setDefaultActive(): void {
-    if (this.active === undefined || this.active === null) {
-      this.active = true;
-    }
-  }
 }
